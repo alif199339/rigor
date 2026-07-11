@@ -1,6 +1,6 @@
 # RIGOR — Research Integrity Guardrails for Open Research
 
-[![tests](https://github.com/YOUR_GITHUB_USERNAME/rigor/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/rigor/actions)
+[![tests](https://github.com/alif199339/rigor/actions/workflows/ci.yml/badge.svg)](https://github.com/alif199339/rigor/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **An integrity-first agent toolkit for AI-assisted research.** RIGOR gives an LLM coding
@@ -35,7 +35,7 @@ every edit**. Nothing in RIGOR rewrites your manuscript, bibliography, or result
 RIGOR is a copy-paste folder — no package manager, no build step.
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/rigor
+git clone https://github.com/alif199339/rigor
 cp -r rigor/skills <your-project>/.claude/skills   # merge if .claude/skills exists
 ```
 
