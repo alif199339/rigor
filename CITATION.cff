@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use RIGOR in your research, please cite it as below."
+type: software
+title: "RIGOR: Research Integrity Guardrails for Open Research"
+abstract: >-
+  An integrity-first toolkit of agent skills for AI-assisted research: grounded
+  literature discovery (zero hallucinated citations by construction), bibliography
+  auditing against Semantic Scholar and Crossref, manuscript-vs-data claim
+  reconciliation, paired-by-seed significance testing, and unattended remote
+  experiment execution with scientific-integrity verification.
+authors:
+  - family-names: Mahmud
+    given-names: Alif
+    affiliation: >-
+      Department of Electrical and Electronic Engineering, Bangladesh University
+      of Engineering and Technology (BUET), Dhaka, Bangladesh
+license: MIT
+repository-code: "https://github.com/YOUR_GITHUB_USERNAME/rigor"
+version: "1.1"
+date-released: "2026-07-11"
+keywords:
+  - research integrity
+  - AI agents
+  - literature review
+  - citation verification
+  - reproducibility
+  - statistical testing
+references:
+  - type: article
+    title: "The Semantic Scholar Open Data Platform"
+    authors:
+      - family-names: Kinney
+        given-names: Rodney
+    year: 2023
+    doi: 10.48550/arXiv.2301.10140
+    notes: "Collections built with RIGOR's lit-review skill rely on the Semantic Scholar API; published material built on them should cite this paper per the API license."

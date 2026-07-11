@@ -1,0 +1,38 @@
+# project_profile.example.yaml -- Layer-2 config for the transferable research agent.
+#
+# Copy this to `project_profile.yaml` (same folder) and fill it in for a new project.
+# The onboarding procedure in ../RESEARCH_AGENT.md writes this automatically: on first
+# use in a project without a profile, the agent scans the repo, asks only what it can't
+# infer, and generates the file. Nothing here is secret -- credentials stay machine-level
+# (S2_API_KEY env var, ~/.kaggle*), never in this file.
+#
+# Every path is relative to project_root unless absolute. Omit a key a project doesn't
+# have; the skills degrade gracefully (e.g. no manuscript -> claims-audit is inapplicable).
+
+project_name: <short-name>
+project_root: <absolute path to repo root>
+
+# --- manuscript / bibliography (claims-audit, bib-audit, lit-review) ---
+manuscript: path/to/main.tex          # the paper draft (LaTeX)
+tables_dir: path/to/tables            # \input-ed, aggregator-generated table fragments (ground truth)
+figures_dir: path/to/figures          # generated + hand-drawn figures
+bib: path/to/references.bib           # the bibliography to audit
+
+# --- remote GPU execution (run-remote, verify-run) ---
+sweep_dir: path/to/work-dir           # holds runner.py, sweep*.yaml, runs/, experiments.md, accounts.yaml
+runner: path/to/work-dir/runner.py    # self-locates via __file__; keep it co-located with its sweeps + runs/
+results_glob: "path/to/work-dir/runs/*/output/results.json"
+experiments_log: path/to/work-dir/experiments.md
+reference_notebook_template: path/to/a/kaggle-enabled-notebook.ipynb   # the "already-enabled" template
+reference_results: <where verified reference numbers live, e.g. CLAUDE.md#4 or a results doc>
+
+# --- literature (lit-review, topic-watch, bib-audit) ---
+literature_dir: literature            # lit-review writes literature/<slug>/
+
+# --- interpreters (the scripts need different envs) ---
+python_scipy: <python with scipy>     # stat-check needs scipy (e.g. a smoke venv w/ scikit-learn)
+python_pypdf: "py -3.11"              # fulltext needs pypdf; kaggle/papermill also live here
+mailto: <you@example.com>             # Crossref/OpenAlex polite-pool contact (bib-audit, enrich)
+
+# --- safety (all skills honor this) ---
+gpu_requires_user_ok: true            # never flip a sweep's enable_gpu:true without explicit user go-ahead

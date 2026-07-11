@@ -1,0 +1,33 @@
+# sweep.example.yaml -- copy into your sweep work dir as sweep.yaml and edit.
+# Defines WHAT to run (the researcher's call, never the agent's). runner.py consumes it.
+
+notebook: "../notebooks/my_experiment.ipynb"   # relative to this directory; must be
+                                               # papermill-enabled (a `parameters`-tagged
+                                               # cell + a results.json export cell)
+kernel_slug_prefix: myproj-exp1                # run ids become myproj-exp1-run001, ...
+                                               # use a FRESH prefix for retries -- never
+                                               # reuse one across notebook versions
+kaggle_username: your-kaggle-username
+
+# GPU spends real weekly quota (~30 h/account) -- flip to true only with the project
+# owner's explicit go-ahead. SMOKE_TEST-only sweeps should keep this false.
+enable_gpu: false
+# When enable_gpu is true, pin the accelerator: Kaggle's default image's torch build has
+# been observed to lack Pascal (sm_60) kernels, crashing instantly on a P100 assignment.
+machine_shape: NvidiaTeslaT4
+enable_internet: true
+
+# Private/public Kaggle datasets to mount at /kaggle/input/<slug>/ in the kernel.
+dataset_sources:
+  - your-kaggle-username/your-dataset-slug
+
+poll_interval_seconds: 60
+max_poll_minutes: 120        # raise for slow models; the runner marks TIMEOUT past this
+
+# Each entry = one kernel run; keys are papermill parameter overrides for the notebook's
+# `parameters`-tagged cell. Start every campaign with a SMOKE_TEST pipeline check.
+runs:
+  - { SMOKE_TEST: true }
+  - { SMOKE_TEST: false, SEED: 42 }
+  - { SMOKE_TEST: false, SEED: 0 }
+  - { SMOKE_TEST: false, SEED: 1 }

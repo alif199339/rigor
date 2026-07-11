@@ -1,0 +1,6 @@
+{
+  "_comment": "Optional Layer-2 study-name map for stat-check / claims-audit. Copy to studies.json and edit. Key = 'notebook.ipynb::span_start' (empty string when span_start is null in results.json). When studies.json exists, runs with unknown keys are SKIPPED (curated mode -- keeps probe/scratch runs out); without it, every run is auto-named '<notebook-stem>@<span>'.",
+  "my_experiment.ipynb::": "main_study",
+  "my_experiment.ipynb::2021-01-01": "ablation_short_history",
+  "my_experiment.ipynb::2016-01-01": "ablation_long_history"
+}

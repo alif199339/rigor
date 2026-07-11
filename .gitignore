@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# per-install Layer-2 config is project-local, never committed here
+skills/_shared/project_profile.yaml
+skills/_shared/studies.json
+
+# paper build artifacts
+paper/arxiv/main.pdf
+paper/arxiv/*.png
+paper/arxiv/*.aux
+paper/arxiv/*.log
+paper/arxiv/*.out
+paper/arxiv/*.bbl
+paper/arxiv/*.blg
+paper/arxiv/*.fls
+paper/arxiv/*.fdb_latexmk
+paper/arxiv/*.synctex.gz
+paper/jats/

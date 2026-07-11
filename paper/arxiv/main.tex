@@ -1,0 +1,289 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+
+\title{RIGOR: Research Integrity Guardrails for Open Research\\
+\large An integrity-first agent toolkit for AI-assisted science}
+\author{Alif Mahmud\\
+\small Department of Electrical and Electronic Engineering\\
+\small Bangladesh University of Engineering and Technology (BUET), Dhaka, Bangladesh}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large language model (LLM) agents are moving into every stage of the research
+workflow---literature survey, experiment execution, statistical analysis, and
+manuscript drafting---and they import three well-documented failure modes:
+hallucinated citations, numbers in prose that silently drift from the data
+behind them, and superiority claims that random seed variation does not
+support. We present RIGOR, an open-source toolkit of seven agent
+\emph{skills} (instruction files paired with small, dependency-light Python
+programs) that makes agent-assisted research \emph{grounded by construction}
+rather than by exhortation. RIGOR enforces three architectural guarantees:
+(1)~a paper may be cited only if it exists in a provenance-tagged store
+populated exclusively by live bibliographic API responses; (2)~audit tools
+that reconcile bibliographies and manuscript numbers against ground truth
+\emph{report and propose but never edit}; and (3)~every ``X beats Y'' claim is
+gated on paired-by-seed significance tests that report exact $p$-values and
+$n$, with non-significance reported as a result. We describe the design, a
+two-layer portability model that separates generic mechanics from per-project
+configuration, and a working case study on a real multi-seed forecasting
+project in which each tool produced verifiable findings, including a wrong
+bibliography title, 39 stale-drift candidates in one manuscript, and a
+single-seed ``best model'' headline that dissolved under paired testing.
+RIGOR is available under the MIT license.
+\end{abstract}
+
+\section{Introduction}
+
+LLM assistance in research is no longer hypothetical: models survey fields,
+draft related-work sections, orchestrate experiments, and edit manuscripts.
+The efficiency gains are real, but so are the integrity risks, and they are
+not hypothetical either. Controlled evaluations find that a large fraction of
+LLM-generated bibliographic citations are fabricated or substantively
+erroneous~\cite{walters2023fabrication}. Two further failure modes emerge as
+agents move beyond writing into the experimental loop:
+
+\begin{enumerate}
+\item \textbf{Text--data drift.} Modern empirical papers regenerate their
+result tables from experiment artifacts, but the surrounding prose---the
+abstract, discussion sentences, figure captions---is hand-written. After a
+re-run, the tables update and the prose silently keeps the old numbers. In
+our case study (Section~\ref{sec:case}), a careful \emph{manual} audit of one
+manuscript found nine such mismatches; the mechanized audit later surfaced
+dozens of candidates.
+\item \textbf{Seed-noise claims.} With $n{\approx}10$ random seeds, a nominal
+gap between two models is often smaller than the seed-to-seed spread of either
+one. A single-seed ranking presented as a finding is not robust, and agents
+that summarize results tables reproduce such rankings uncritically.
+\end{enumerate}
+
+Prompting an agent to ``be accurate'' does not fix any of these: the failure
+happens precisely when the model is confident. Our position is architectural:
+\emph{make the failure impossible to commit silently}. RIGOR contributes a
+small, auditable toolkit organized around three guarantees:
+
+\begin{itemize}
+\item \textbf{Grounded by construction} (Section~\ref{sec:lit}): every
+citation must originate from a live Semantic Scholar API
+response~\cite{kinney2023semanticscholar} recorded in a provenance-tagged
+store; remembered papers must be verified against the API before they may be
+mentioned; claims about a paper's content must trace to its stored abstract,
+its full text (with page tags), or the citing sentences retrieved for it.
+\item \textbf{Report, propose, never edit} (Section~\ref{sec:audit}): the
+bibliography and manuscript auditors emit classified findings with suggested
+fixes; a human applies each one. There is no code path by which an audit
+modifies the user's files.
+\item \textbf{Exact statistics} (Section~\ref{sec:stat}): superiority claims
+are tested paired-by-seed (Wilcoxon signed-rank~\cite{wilcoxon1945individual}
+with a paired $t$ reference~\cite{virtanen2020scipy}, optional Holm
+correction~\cite{holm1979simple}); output always includes $n$ and exact
+$p$-values, and a null result is reported, never dropped.
+\end{itemize}
+
+\section{Related work}
+
+Commercial AI research assistants (literature-discovery products and chat
+interfaces with retrieval) address parts of the citation-grounding problem,
+but are generally closed-source, non-scriptable, and difficult to audit; their
+guarantees, where stated, are not inspectable. On the open side,
+bibliographic APIs---Semantic Scholar~\cite{kinney2023semanticscholar},
+OpenAlex~\cite{priem2022openalex}, and Crossref~\cite{hendricks2020crossref}%
+---provide the verifiable substrate RIGOR builds on, but are typically consumed
+by ad-hoc scripts without an integrity policy connecting them to what the
+agent ultimately writes. Reproducibility tooling (workflow managers,
+experiment trackers) addresses artifact provenance but not the last mile where
+numbers enter prose. RIGOR's contribution is not a new algorithm but the
+missing policy layer: a set of enforceable rules, each backed by a mechanical
+tool, spanning literature, bibliography, manuscript, and statistics.
+
+\section{Design}
+
+\subsection{Skills: judgment and mechanics, separately}
+
+Each RIGOR capability is a \emph{skill}: a folder containing a
+\texttt{SKILL.md} (the agent-facing contract: when to act, integrity rules,
+how to adjudicate tool output) and one Python script (the mechanics:
+API calls, parsing, classification). This split is deliberate. The scripts are
+deterministic and testable offline (all HTTP is stubbed in CI); the judgment
+calls---is this near-miss number a stale claim or a coincidentally similar
+correlation coefficient?---are documented duties of the agent, executed under
+human review. The scripts are standard-library-first Python~3.10+ (scipy and
+pypdf~\cite{pypdf} only where noted) and equally usable by hand, with no agent
+at all.
+
+\subsection{Two-layer portability}
+
+Skills contain no project paths, project names, or reference numbers
+(\emph{Layer~1}). Everything project-specific lives in one profile file
+(\emph{Layer~2}): manuscript path, results glob, which interpreter has scipy,
+where verified reference numbers live, and safety flags. The agent reads the
+profile and wires values into command-line arguments; the scripts stay
+generic. Installing RIGOR into a project is a folder copy; onboarding scans
+the repository, asks only what cannot be inferred, and writes the profile.
+Credentials (API keys, cloud tokens) are machine-level environment variables
+and never travel with the folder.
+
+\subsection{Grounded literature work}
+\label{sec:lit}
+
+The \textbf{lit-review} skill maintains, per topic, a JSON store of papers
+keyed by Semantic Scholar identifier, where every entry records
+\emph{provenance}: which query, snowball, recommendation, or lookup produced
+it. Sub-commands cover ranked search; exhaustive boolean \emph{bulk} search
+for long-tail coverage claims; citation snowballing in both directions;
+recommendations; \emph{contexts} (the sentences in which the field cites a
+paper, with intent tags--- upgrading novelty screening from
+regex-over-abstracts to reading actual usage); \emph{enrich} (abstracts
+missing from Semantic Scholar are filled from
+OpenAlex~\cite{priem2022openalex} into a separately-attributed field, never
+overwriting the primary source); \emph{refresh} (batch updates of citation
+counts, stamping every entry with a fetch date so ``cites $N$'' claims carry
+an as-of date); validated open-access PDF retrieval (magic-byte checks with an
+arXiv fallback, because publisher ``OA'' links are sometimes HTML landing
+pages); and page-tagged full-text extraction, so a claim grounded in a paper's
+body cites a page. The integrity rules are short and absolute: no paper may be
+cited unless it is in the store; remembered papers are verified first; content
+claims trace to stored fields; citation counts are reported exactly as
+returned. \textbf{topic-watch} re-runs the store's own recorded queries and
+diffs for new papers, keeping a survey current before a revision.
+
+\subsection{Auditing the bibliography and the manuscript}
+\label{sec:audit}
+
+\textbf{bib-audit} checks each BibTeX entry against Semantic Scholar and
+Crossref: DOI-first, title-match fallback with similarity scoring. Verdicts
+are \textsc{verified}, \textsc{mismatch} (field-level diffs and suggested
+corrections), \textsc{not-found}, \textsc{non-paper-ok} (datasets, standards,
+software: checked by URL liveness instead), and \textsc{unverifiable}
+(submitted work). Two calibration details matter in practice. First,
+bibliographic databases often record a conference paper under its preprint
+year; a $\le$2-year offset is therefore reported as an informational note, not
+an error---na\"ively flagging it would have produced false alarms on a third
+of our case-study bibliography. Second, when a title-only match disagrees on
+year by more than two years, the finding is flagged but \emph{no fix is
+auto-suggested}: the match is likely a different edition or a review of the
+same work, and a plausible-looking auto-fix would be worse than none.
+
+\textbf{claims-audit} extracts every numeric literal from a LaTeX manuscript's
+prose and captions (skipping generated table inputs, references, labels, and
+layout dimensions) and classifies each against a ground-truth pool built from
+the machine-generated tables plus the aggregated experiment results:
+\textsc{matched} (within rounding), \textsc{near-miss} (close but drifted:
+the prime stale-claim suspects), and \textsc{orphan} (traceable to no data
+source---mostly legitimate derived or structural values, but containing the
+dangerous class of results-like numbers with no provenance). It also flags
+unfilled placeholder macros and any results-derived figure whose file is older
+than the newest results artifact. The tool deliberately trades false positives
+for zero false negatives on the dangerous class; the human pass over the
+report is the point, not a failure of automation.
+
+\subsection{Statistical honesty}
+\label{sec:stat}
+
+\textbf{stat-check} ingests per-run results files (one JSON per experiment
+run), groups them into studies, deduplicates re-runs (newest per seed wins),
+excludes smoke tests, and aligns metric values \emph{by seed} so tests are
+properly paired. For each requested pair it reports $n$, means, the median
+paired difference, the exact Wilcoxon signed-rank $p$, and a paired-$t$
+reference value; a default battery tests best-vs-runner-up and best-vs-each-%
+baseline. With $n{=}10$ seeds the smallest achievable two-sided Wilcoxon $p$
+is $2/2^{10} \approx 0.002$; the tool documents this floor so users read
+$p=0.002$ as ``a clean sweep,'' not as arbitrary precision. Holm correction is
+available and its use (or absence) is disclosed in the output.
+
+\subsection{Unattended execution with a verification gate}
+
+\textbf{run-remote} drives parameterized notebooks~\cite{papermill} through
+free cloud GPU services (parameter injection, push, poll, download, parse),
+with a hard safety rule: enabling GPU---which spends a real, shared weekly
+quota---requires the project owner's explicit approval every time.
+\textbf{verify-run} is the checklist every completed run passes before its
+numbers reach the researcher: all expected configurations present (a missing
+key is a silent mid-run failure, not a partial success); smoke-test flags
+honored (pipeline-check numbers are never reported as results); early-abort
+(futility) stops disclosed rather than hidden; NaNs reported as failures;
+parameter counts matched exactly against anchors (an exact match fingerprints
+that the intended pipeline ran); and seed counts always disclosed, so a
+single-seed number is never presented as a robust average.
+
+\section{Case study: a real project as first install}
+\label{sec:case}
+
+RIGOR's first install is a live research project---a multi-seed regional
+electricity-load forecasting study with a LaTeX manuscript, a 14-entry
+bibliography, a 245-paper literature collection, and six 10-seed experiment
+studies executed remotely. Each tool produced concrete, verifiable findings:
+
+\begin{itemize}
+\item \textbf{bib-audit} (14 entries): one reference's title turned out to be
+a paraphrase of the real paper's title (the entry resolved to nothing until
+the audit surfaced the correctly-titled record); three title-only matches hit
+different editions or records and were flagged with no auto-fix; two dataset
+resources were verified by URL liveness; five missing DOIs were recovered.
+The preprint-year calibration prevented three false alarms.
+\item \textbf{claims-audit} (one manuscript): 266 numeric claims classified
+(154 matched, 39 near-miss, 73 orphan) and 12 results-derived figures flagged
+as stale relative to the newest results---mechanizing, and extending, a manual
+audit that had found nine real text--data mismatches.
+\item \textbf{stat-check} (14 models $\times$ 10 seeds): the nominally best
+model was statistically indistinguishable from several siblings (Wilcoxon
+$p\approx0.5$), while every family-versus-baseline comparison survived exactly
+($p=0.002$--$0.02$). A single-seed ``best architecture'' headline from an
+earlier phase of the project did not survive; the published claim was reshaped
+accordingly---the tool's purpose working as intended, against its own
+project's preferred narrative.
+\item \textbf{lit-review}: the collection was built from seven ranked queries,
+snowballing, recommendations, and a boolean bulk pass; abstract enrichment
+filled 9 of 39 missing abstracts from OpenAlex (the remainder are withheld by
+publishers---an honest, documented gap); a single batch refresh re-dated all
+citation counts.
+\item This paper's own bibliography was verified by resolving every DOI
+through doi.org content negotiation before inclusion.
+\end{itemize}
+
+\section{Limitations}
+
+RIGOR's grounding is only as complete as its substrate: Semantic Scholar and
+OpenAlex have coverage gaps (some publishers withhold abstracts; very recent
+or non-English work may be missing), so ``not found'' is evidence, not proof,
+of non-existence. Rate limits (1~request/s on the primary API) make large
+collections slow to build and briefly throttle bursty use.
+The claims auditor is calibrated for LaTeX manuscripts with generated tables;
+purely hand-written papers reduce it to placeholder and figure checks. The
+statistical tool assumes per-seed results files in a simple JSON schema;
+projects must export it (a few lines in the training notebook). Paired tests
+at $n{\approx}10$ have limited power, which the tool discloses rather than
+solves. Finally, the skill layer's semantic adjudication depends on the
+hosting agent following written rules; the guarantees that matter most
+(no citation outside the store, no auto-edits, exact $p$-values) are enforced
+by the tools themselves, but the quality of, e.g., near-miss adjudication
+varies with the agent.
+
+\section{Conclusion}
+
+RIGOR treats research integrity as an architecture problem: identify the
+places where AI assistance can silently fabricate, drift, or overclaim, and
+put a mechanical, auditable gate at each one. The result is a small toolkit
+that a researcher can copy into any project, drive with or without an agent,
+and extend---with the guarantee that everything it lets through leaves a
+verifiable trail.
+
+\paragraph{Availability.} RIGOR is available under the MIT license at
+\url{https://github.com/YOUR_GITHUB_USERNAME/rigor}. Collections built with it
+rely on the Semantic Scholar API; published material based on them should cite
+Kinney et al.~\cite{kinney2023semanticscholar} per the API license.
+
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+\end{document}
