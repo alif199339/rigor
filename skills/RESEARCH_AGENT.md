@@ -1,6 +1,9 @@
 # RIGOR — Research Integrity Guardrails for Open Research
 
-> **VERSION: 1.2** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> *An integrity-first agent for the full research workflow — grounded literature,
+> verified experiments, honest statistics, auditable manuscripts.*
+>
+> **VERSION: 1.3** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -14,13 +17,13 @@ mechanics):
 
 | Skill | Does | Needs |
 |---|---|---|
-| **lit-review** | Grounded literature discovery from Semantic Scholar — real DOIs/PDFs only, never model-memory citations. Commands: `search`(+`--bulk`), `lookup`, `snowball`, `recommend`, `contexts`, `enrich`(OpenAlex), `refresh`, `report`, `pdfs`, `fulltext`. | `S2_API_KEY`; pypdf for `fulltext` |
+| **lit-review** | Grounded literature discovery from Semantic Scholar — real DOIs/PDFs only, never model-memory citations. Commands: `search`(+`--bulk`), `lookup`, `snowball`, `recommend`, `contexts`, `enrich`(OpenAlex), `refresh`, `report` (rich entries; `--focus` tiers the collection by relevance to *your* project), `pdfs`, `fulltext`. | `S2_API_KEY`; pypdf for `fulltext` |
 | **bib-audit** | Verify every `.bib` entry against Semantic Scholar + Crossref; propose fixes, never auto-edit. | `S2_API_KEY`, a contact email |
 | **claims-audit** | Reconcile manuscript numbers vs table/results ground truth; flag stale-drift, orphans, stale figures. | results.json + generated tables |
 | **stat-check** | Paired-by-seed Wilcoxon/t for "X beats Y" claims from multi-seed runs; exact p-values, optional Holm. | scipy |
 | **topic-watch** | Re-run a collection's recorded queries, diff for new papers. Manual only. | `S2_API_KEY`; lit-review present |
 | **run-remote** | Dispatch a notebook to Kaggle GPU via the runner (push→poll→download→parse). | Kaggle token, a sweep work dir |
-| **colab-run** | Semi-attended Colab backend via a Drive-synced folder (inject→stage→one-tap run→poll→journal); the tap doubles as GPU approval. | Google Drive for Desktop |
+| **colab-run** | Semi-attended Colab fallback via a Drive-synced folder (inject→stage→one-tap run→poll→journal); the tap doubles as GPU approval. Field-verified. Kaggle is the recommended headless default. | Google Drive for Desktop |
 | **verify-run** | Scientific-integrity checklist on a completed run's results.json. | the profile's `reference_results` |
 
 Integrity is the through-line: a citation must exist in the API-returned `papers.json`
@@ -100,6 +103,16 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.3** — **colab-run field-verified** on a live Colab VM (token-stamped round trip
+  through the synced folder); the field test caught and fixed a boolean-injection bug
+  (`json.loads` turning `False` into the truthy string `'False'` — smoke mode could
+  never be disabled), now a regression test. Backend guidance made explicit: Kaggle =
+  recommended fully-headless default, Colab = deliberate semi-attended fallback.
+  **lit-review `report` reworked**: rich per-paper entries (title, S2/DOI/PDF links,
+  provenance, best-available abstract with source attribution) and `--focus` /
+  `--focus-file` relevance ranking — the collection tiers into Core/Related/Peripheral
+  against the researcher's own project description via a transparent IDF-weighted
+  term-overlap score with matched terms shown per paper. 47 offline tests.
 - **v1.2** — New **colab-run** skill: Google Colab as a second free-GPU backend via a
   Drive-synced folder. Free Colab has no headless-execution API (and RIGOR does not
   automate around platform terms), so the design is semi-attended: the agent injects

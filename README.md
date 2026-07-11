@@ -3,10 +3,13 @@
 [![tests](https://github.com/alif199339/rigor/actions/workflows/ci.yml/badge.svg)](https://github.com/alif199339/rigor/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**An integrity-first agent toolkit for AI-assisted research.** RIGOR gives an LLM coding
-agent (built for [Claude Code](https://claude.com/claude-code), adaptable to any harness
-that reads skill folders) a set of research capabilities that are *grounded by
-construction* — so the three classic failure modes of AI-assisted research can't happen:
+**An integrity-first agent for the full research workflow — grounded literature,
+verified experiments, honest statistics, auditable manuscripts.** RIGOR turns an LLM
+coding agent (built for [Claude Code](https://claude.com/claude-code), adaptable to any
+harness that reads skill folders) into a research assistant that surveys the field,
+runs your GPU experiments unattended on free cloud compute, tests your claims
+statistically, and keeps your manuscript honest — with every capability *grounded by
+construction*, so the three classic failure modes of AI-assisted research can't happen:
 
 | Failure mode | RIGOR's guardrail |
 |---|---|
@@ -18,13 +21,13 @@ construction* — so the three classic failure modes of AI-assisted research can
 
 | Skill | What it does |
 |---|---|
-| [`lit-review`](skills/lit-review/SKILL.md) | Grounded literature discovery: `search` (ranked or `--bulk` boolean coverage), `lookup`, `snowball`, `recommend`, citation `contexts` (the sentences citing a paper + intent tags), OpenAlex `enrich` (abstract holes, provenance-tagged), `refresh` (batch citation-count updates with as-of dates), `report` (ranked index + BibTeX), `pdfs` (validated open-access downloads), `fulltext` (page-tagged text so body claims cite pages). |
+| [`lit-review`](skills/lit-review/SKILL.md) | Grounded literature discovery: `search` (ranked or `--bulk` boolean coverage), `lookup`, `snowball`, `recommend`, citation `contexts` (the sentences citing a paper + intent tags), OpenAlex `enrich` (abstract holes, provenance-tagged), `refresh` (batch citation-count updates with as-of dates), `pdfs` (validated open-access downloads), `fulltext` (page-tagged text so body claims cite pages). `report` renders every paper as a rich entry — title, S2/DOI/PDF links, provenance, best-available abstract — and with `--focus "your project"` **re-ranks and tiers the whole collection (Core/Related/Peripheral) by relevance to *your* work**, with the matched terms shown so the ranking is inspectable, not a black box. |
 | [`bib-audit`](skills/bib-audit/SKILL.md) | Verifies every `.bib` entry against Semantic Scholar + Crossref: wrong years, drifted titles, missing DOIs, unresolvable works. Preprint-vs-publication year offsets are recognized, not false-flagged. |
 | [`claims-audit`](skills/claims-audit/SKILL.md) | Extracts every numeric literal from a LaTeX manuscript's prose/captions and classifies it against ground truth (generated tables + results JSON): MATCHED / NEAR-MISS (stale drift) / ORPHAN. Also flags results-derived figures older than the newest results file. |
 | [`stat-check`](skills/stat-check/SKILL.md) | Paired-by-seed Wilcoxon signed-rank + paired t across multi-seed runs, with optional Holm correction. Groups runs exactly like your aggregator (newest run per seed supersedes; smoke runs excluded). |
 | [`topic-watch`](skills/topic-watch/SKILL.md) | Re-runs a collection's own recorded queries and diffs for papers published since — keeps a survey current before a revision. Manual by design. |
 | [`run-remote`](skills/run-remote/SKILL.md) | Drives unattended notebook execution on Kaggle's free GPU (papermill parameter injection → push → poll → download → parse), with quota safety: GPU is never enabled without the owner's explicit yes. |
-| [`colab-run`](skills/colab-run/SKILL.md) | Google Colab as a second free-GPU backend, honestly: free Colab has no headless-execution API, so the agent injects parameters and stages the notebook into your Drive-synced folder, you tap "Run all" once (that tap **is** the GPU approval), and the agent polls the synced folder, validates `results.json`, and journals it. |
+| [`colab-run`](skills/colab-run/SKILL.md) | Google Colab as a **fallback** free-GPU backend, honestly: free Colab has no headless-execution API, so the agent injects parameters and stages the notebook into your Drive-synced folder, you tap "Run all" once (that tap **is** the GPU approval), and the agent polls the synced folder, validates `results.json`, and journals it. **Field-verified end-to-end.** For full automation (overnight fleets, zero taps), use `run-remote`/Kaggle — that's the recommended default. |
 | [`verify-run`](skills/verify-run/SKILL.md) | The integrity checklist every completed run passes before its numbers reach a human: config completeness, smoke-test flags, futility stops, NaNs, parameter-count fingerprints, seed-count disclosure. |
 
 The division of labor is deliberate: **scripts do the mechanical extraction; the agent
@@ -62,9 +65,10 @@ The scripts are stdlib-only Python 3.10+ except where noted. Windows: set `PYTHO
 ## Quickstart (scripts also work standalone, without any agent)
 
 ```bash
-# build a grounded literature collection
+# build a grounded literature collection, then rank it by relevance to YOUR project
 python skills/lit-review/lit_search.py --out literature/my-topic search --query "your topic" --limit 25
-python skills/lit-review/lit_search.py --out literature/my-topic report
+python skills/lit-review/lit_search.py --out literature/my-topic report \
+       --focus "one paragraph describing your project or question"   # tiers: Core/Related/Peripheral
 
 # audit a bibliography (report-only)
 python skills/bib-audit/bib_audit.py --bib references.bib --mailto you@example.com

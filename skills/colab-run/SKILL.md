@@ -16,6 +16,17 @@ you:   open in Colab -> Runtime -> Run all                 (the one tap; = GPU a
 agent: poll synced folder -> validate results.json -> journal -> /verify-run   (poll)
 ```
 
+**Field-verified (2026-07-11):** a staged notebook executed on a live Colab VM and
+returned a token-stamped `results.json` through the synced folder — the full round trip
+is exercised, not just designed. (The field test also caught a boolean-injection bug,
+now fixed and locked in as a regression test.)
+
+**Use Kaggle first.** `run-remote`'s headless kernels API is the fully-automated,
+recommended path — fleets, overnight campaigns, zero taps. `colab-run` is the deliberate
+fallback: one tap **per run** means a ten-run sweep costs ten taps. Reach for it when
+the week's Kaggle quota is exhausted, when a Colab-specific runtime is wanted, or when
+the per-run human checkpoint is itself desirable.
+
 The script is `.claude/skills/colab-run/colab_run.py` (stdlib-only — it implements the
 papermill `injected-parameters` convention itself, no papermill needed).
 

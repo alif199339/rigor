@@ -19,7 +19,8 @@ Commands
   recommend --seed <paperId-or-DOI:...> [--limit 20] [--out DIR]
   enrich    --source openalex [--out DIR]    # fill missing abstracts from OpenAlex (own field)
   refresh   [--out DIR]                      # batch-refresh citation counts + stamp fetch date
-  report    [--out DIR]                      # regenerate papers.md + papers.bib
+  report    [--focus "..."|--focus-file F]   # rich per-paper entries (title/links/abstract);
+                                             # with a focus: relevance-ranked + tiered
   pdfs      [--top 10] [--out DIR]           # download open-access PDFs (arXiv fallback)
   fulltext  [--top 10 | --all] [--force]     # pypdf-extract page-tagged text from pdfs/
 
@@ -469,6 +470,112 @@ def cmd_enrich(args):
     print(f"[enrich] filled {filled}/{len(targets)} abstract(s) via OpenAlex (store saved)")
 
 
+# ---------------- relevance scoring (for `report --focus`) ----------------
+# A transparent lexical heuristic, not an embedding: IDF-weighted term overlap between
+# the focus text and each paper's title (x3) / tldr (x2) / abstract (x1), normalized to
+# the collection max and bucketed into Core / Related / Peripheral tiers. Deliberately
+# simple and inspectable -- the matched terms are printed per paper so a human can see
+# WHY something ranked where it did (and re-rank by eye for final calls).
+
+_STOP = {"the", "a", "an", "and", "or", "of", "for", "in", "on", "to", "with", "by",
+         "from", "at", "is", "are", "was", "were", "be", "been", "that", "this",
+         "these", "those", "its", "as", "we", "our", "their", "using", "based", "via",
+         "can", "into", "over", "under", "between", "toward", "towards", "new", "novel",
+         "approach", "method", "paper", "study", "propose", "proposed"}
+
+
+def _tokens(text):
+    return [t for t in re.findall(r"[a-z][a-z0-9\-]{2,}", (text or "").lower())
+            if t not in _STOP]
+
+
+def _relevance(papers, focus):
+    """Returns (scores in [0,1], matched-terms lists), aligned with `papers`."""
+    import math
+    q = set(_tokens(focus))
+    if not q:
+        raise SystemExit("[report] --focus text contained no usable terms")
+    docs, df = [], {}
+    for p in papers:
+        toks = {"title": set(_tokens(p.get("title"))),
+                "tldr": set(_tokens((p.get("tldr") or {}).get("text"))),
+                "abstract": set(_tokens(p.get("abstract") or p.get("_abstract_openalex")))}
+        docs.append(toks)
+        for t in toks["title"] | toks["tldr"] | toks["abstract"]:
+            df[t] = df.get(t, 0) + 1
+    N = len(papers)
+    idf = {t: math.log((N + 1) / (df.get(t, 0) + 1)) + 1.0 for t in q}
+    scores, matches = [], []
+    for toks in docs:
+        s = (sum(3 * idf[t] for t in q & toks["title"])
+             + sum(2 * idf[t] for t in q & toks["tldr"])
+             + sum(1 * idf[t] for t in q & toks["abstract"]))
+        scores.append(s)
+        matches.append(sorted(q & (toks["title"] | toks["tldr"] | toks["abstract"]),
+                              key=lambda t: -idf[t]))
+    mx = max(scores) if scores and max(scores) > 0 else 1.0
+    return [s / mx for s in scores], matches
+
+
+def _abstract_of(p, cap=650):
+    """Best available abstract text + a provenance label (None label = native S2)."""
+    if (p.get("abstract") or "").strip():
+        text, src = p["abstract"].strip(), None
+    elif (p.get("_abstract_openalex") or "").strip():
+        text, src = p["_abstract_openalex"].strip(), "abstract via OpenAlex"
+    elif ((p.get("tldr") or {}).get("text") or "").strip():
+        text, src = p["tldr"]["text"].strip(), "TL;DR (Semantic Scholar)"
+    else:
+        return None, None
+    text = re.sub(r"\s+", " ", text)
+    if len(text) > cap:
+        text = text[:cap].rsplit(" ", 1)[0] + " …"
+    return text, src
+
+
+def _entry_md(p, rank, rel=None, matched=None):
+    """One rich markdown block per paper: title, links, metadata, relevance, abstract."""
+    title = (p.get("title") or "(untitled)").strip()
+    year = p.get("year") or "?"
+    s2 = p.get("url") or f"https://www.semanticscholar.org/paper/{p.get('paperId')}"
+    doi = _doi(p)
+    oa = _oa_url(p)
+    venue = (p.get("venue") or "").strip()
+    srcs = ", ".join(sorted({s.split(":", 1)[0] for s in p.get("_sources", [])})) or "-"
+    lines = [f"### {rank}. {title} ({year})", ""]
+    meta = []
+    if venue:
+        meta.append(f"*{venue}*")
+    meta.append(f"cites {p.get('citationCount') or 0}"
+                + (f" (influential {p['influentialCitationCount']})"
+                   if p.get("influentialCitationCount") else ""))
+    meta.append(f"found via {srcs}")
+    lines.append(" · ".join(meta) + "  ")
+    links = [f"[Semantic Scholar]({s2})"]
+    if doi:
+        links.append(f"[DOI:{doi}](https://doi.org/{doi})")
+    if oa:
+        links.append(f"[open-access PDF]({oa})")
+    lines.append("**Links:** " + " · ".join(links) + "  ")
+    if rel is not None:
+        terms = ", ".join(matched[:7]) if matched else "—"
+        lines.append(f"**Relevance:** {rel:.2f} — matches: {terms}  ")
+    abs_text, abs_src = _abstract_of(p)
+    if abs_text:
+        tag = f" *({abs_src})*" if abs_src else ""
+        lines.append(f"\n> {abs_text}{tag}")
+    else:
+        lines.append("\n> *(abstract unavailable — verify before citing claims about "
+                     "this paper's content)*")
+    lines.append("")
+    return lines
+
+
+TIERS = [(0.60, "Core", "strongly matched to the focus — read these first"),
+         (0.30, "Related", "clearly overlapping topics — skim for methods and baselines"),
+         (0.00, "Peripheral", "weak lexical overlap — background or false neighbours")]
+
+
 def cmd_report(args):
     store = load_store(args.out)
     if not store:
@@ -478,36 +585,56 @@ def cmd_report(args):
     asof = (f" Citation counts as of {fetched[0]}"
             + (f"–{fetched[-1]}" if fetched[-1] != fetched[0] else "")
             + " (via `refresh`)." if fetched else "")
+
+    focus = args.focus or ""
+    if args.focus_file:
+        with open(args.focus_file, encoding="utf-8") as f:
+            focus = (focus + "\n" + f.read()).strip()
+
     lines = [
-        "# Literature index (generated from Semantic Scholar API -- every entry is a real, verified paper)",
+        "# Literature index — generated from the Semantic Scholar API "
+        "(every entry is a real, verified paper)",
         "",
-        f"*{len(papers)} unique papers. Regenerate with `report`. Raw metadata: `papers.json`. "
-        f"BibTeX: `papers.bib`.{asof}*",
+        f"*{len(papers)} unique papers. Regenerate with `report`. Raw metadata: "
+        f"`papers.json`. BibTeX: `papers.bib`.{asof}*",
         "",
-        "## All papers, ranked by influence (3x influential citations + citations)",
-        "",
-        "| # | Title | Year | Venue | Cites | DOI | OA PDF | Found via |",
-        "|---|---|---|---|---|---|---|---|",
     ]
-    for i, p in enumerate(papers, 1):
-        title = (p.get("title") or "?").replace("|", "/")
-        link = p.get("url") or ""
-        doi = _doi(p) or "-"
-        oa = "yes" if _oa_url(p) else "-"
-        venue = (p.get("venue") or "-").replace("|", "/")[:40]
-        srcs = "; ".join(s.split(":", 1)[0] for s in p.get("_sources", []))[:40]
-        lines.append(f"| {i} | [{title}]({link}) | {p.get('year') or '?'} | {venue} | "
-                     f"{p.get('citationCount') or 0} | {doi} | {oa} | {srcs} |")
-    recent = [p for p in papers if (p.get("year") or 0) >= args.recent_since]
-    recent.sort(key=lambda p: (p.get("year") or 0, _score(p)), reverse=True)
-    lines += ["", f"## Recent work ({args.recent_since}+), newest first", ""]
-    for p in recent:
-        t = p.get("tldr") or {}
-        gist = t.get("text") or (p.get("abstract") or "")[:220]
-        if not gist and p.get("_abstract_openalex"):
-            gist = p["_abstract_openalex"][:220] + " *(abstract via OpenAlex)*"
-        lines.append(f"- **{p.get('title')}** ({p.get('year')}, {_first_author(p)} et al., "
-                     f"cites {p.get('citationCount') or 0}) — {gist}")
+
+    if focus:
+        rel, matched = _relevance(papers, focus)
+        order = sorted(range(len(papers)), key=lambda i: (-rel[i], -_score(papers[i])))
+        preview = re.sub(r"\s+", " ", focus)[:220]
+        lines += [
+            f"**Ranked by relevance to your focus:** “{preview}”  ",
+            "*Relevance = transparent IDF-weighted term overlap (title ×3, TL;DR ×2, "
+            "abstract ×1), normalized to the best match — a lexical heuristic with the "
+            "matched terms shown per paper, not a black box. Within a tier, ties break "
+            "by citation influence.*",
+            "",
+        ]
+        rank = 0
+        for _lo, name, blurb in TIERS:
+            if name == "Core":
+                tier_ids = [i for i in order if rel[i] >= 0.60]
+            elif name == "Related":
+                tier_ids = [i for i in order if 0.30 <= rel[i] < 0.60]
+            else:
+                tier_ids = [i for i in order if rel[i] < 0.30]
+            if not tier_ids:
+                continue
+            lines += [f"## {name} ({len(tier_ids)}) — {blurb}", ""]
+            for i in tier_ids:
+                rank += 1
+                lines += _entry_md(papers[i], rank, rel=rel[i], matched=matched[i])
+    else:
+        lines += ["## All papers, ranked by influence "
+                  "(3× influential citations + citations)",
+                  "*Tip: pass `--focus \"your project description\"` (or "
+                  "`--focus-file abstract.txt`) to re-rank and tier this report by "
+                  "relevance to your own work.*", ""]
+        for rank, p in enumerate(papers, 1):
+            lines += _entry_md(p, rank)
+
     with open(os.path.join(args.out, "papers.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -661,7 +788,11 @@ def main():
 
     rf = sub.add_parser("refresh"); rf.set_defaults(fn=cmd_refresh)
 
-    rp = sub.add_parser("report"); rp.add_argument("--recent-since", type=int, default=2022)
+    rp = sub.add_parser("report")
+    rp.add_argument("--focus", help="your project/inquiry text -- re-ranks and tiers "
+                                    "the report by relevance to it")
+    rp.add_argument("--focus-file", help="file with the focus text (e.g. your abstract); "
+                                         "concatenated with --focus if both given")
     rp.set_defaults(fn=cmd_report)
 
     pd = sub.add_parser("pdfs"); pd.add_argument("--top", type=int, default=10)

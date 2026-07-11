@@ -31,6 +31,7 @@ Usage:
                       --timeout-min 120 [--journal experiments.md]
 """
 import argparse
+import ast
 import datetime
 import json
 import os
@@ -46,9 +47,14 @@ DRIVE_MOUNT = "/content/drive/MyDrive"   # where Colab mounts "My Drive"
 # ---------------- parameter injection (papermill convention, no papermill) ----------------
 
 def _to_py_literal(v: str) -> str:
-    """CLI 'K=V' values -> Python literal source. JSON-ish parses as-is; else quoted str."""
+    """CLI 'K=V' values -> Python literal source. Parses Python literals (True/False/
+    None/ints/floats/quoted strings) via ast.literal_eval; anything else -- including
+    bare words like a hostname or token -- becomes a plain string. (Not json.loads:
+    JSON's lowercase true/false/null would silently mis-parse Python-style True/False,
+    and any resulting non-empty string is truthy regardless -- SMOKE_TEST=False would
+    have injected the *string* 'False', which is truthy, silently defeating the switch.)"""
     try:
-        return repr(json.loads(v))
+        return repr(ast.literal_eval(v))
     except Exception:
         return repr(v)
 

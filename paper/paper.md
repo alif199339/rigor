@@ -45,6 +45,12 @@ follow, and a human approval gate for every proposed change:
   [@priem2022openalex] into a separately-attributed field, batch refresh of
   citation counts with as-of dates, validated open-access PDF retrieval, and
   page-tagged full-text extraction [@pypdf] so body-level claims cite pages.
+  The `report` command renders every paper as a rich entry (title, Semantic
+  Scholar/DOI/PDF links, provenance, best-available abstract with source
+  attribution) and, given the researcher's own project description as a
+  *focus*, re-ranks and tiers the collection (Core/Related/Peripheral) by a
+  transparent IDF-weighted relevance score whose matched terms are printed
+  per paper.
 - **bib-audit** verifies every BibTeX entry against Semantic Scholar and
   Crossref [@hendricks2020crossref], classifying entries as verified,
   mismatched (with field-level diffs), not found, non-paper resources (checked
@@ -64,12 +70,14 @@ follow, and a human approval gate for every proposed change:
 - **topic-watch** re-runs a collection's own recorded queries and diffs for
   newly published papers.
 - **run-remote**, **colab-run**, and **verify-run** dispatch parameterized
-  notebooks [@papermill] to free cloud GPUs (Kaggle unattended; Colab
-  semi-attended through a Drive-synced folder, since free Colab exposes no
-  headless-execution API) and pass every completed run through an integrity
-  checklist (configuration completeness, smoke-test flags, divergence aborts,
-  parameter-count fingerprints, seed-count disclosure) before any number
-  reaches the researcher.
+  notebooks [@papermill] to free cloud GPUs and pass every completed run
+  through an integrity checklist (configuration completeness, smoke-test
+  flags, divergence aborts, parameter-count fingerprints, seed-count
+  disclosure) before any number reaches the researcher. Kaggle is the
+  recommended, fully-headless default; Colab is a deliberate semi-attended
+  fallback (free Colab exposes no headless-execution API — the one human tap
+  per run doubles as the required GPU approval), field-verified end-to-end
+  before being claimed here.
 
 The scripts are standard-library-first Python (3.10+; scipy and pypdf only
 where noted), fully usable standalone from the command line. The skill layer

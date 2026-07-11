@@ -64,8 +64,11 @@ PY $T --out $OUT lookup --title "Attention is all you need"
 # 3b. optional: fill '(abstract unavailable)' holes from OpenAlex (own field, attributed)
 PY $T --out $OUT enrich --source openalex
 
-# 4. regenerate the human-readable index + BibTeX from the deduped store
-PY $T --out $OUT report
+# 4. regenerate the human-readable index + BibTeX from the deduped store.
+#    Pass your project description as --focus (or --focus-file abstract.txt) and the
+#    report is re-ranked + tiered (Core/Related/Peripheral) by relevance to YOUR work,
+#    with matched terms shown per paper (transparent IDF overlap, not a black box).
+PY $T --out $OUT report --focus "one paragraph describing the project or question"
 
 # 5. optional: pull open-access PDFs of the top-ranked papers (arXiv fallback built in)
 PY $T --out $OUT pdfs --top 8
@@ -80,7 +83,7 @@ Folder after a run:
 ```
 literature/<slug>/
 ├── papers.json   # raw verified metadata, deduped by S2 paperId, provenance-tagged
-├── papers.md     # ranked index table + recent-work digest (regenerate via `report`)
+├── papers.md     # rich per-paper entries: title, S2/DOI/PDF links, abstract; relevance-tiered with --focus
 ├── papers.bib    # BibTeX (S2's own citationStyles entries), \bibliography-ready
 ├── pdfs/         # open-access PDFs, `<year>_<title>.pdf`
 ├── fulltext/     # page-tagged plain text (`===== PDF PAGE N =====`) from `fulltext`

@@ -10,7 +10,8 @@
 \usepackage{xcolor}
 
 \title{RIGOR: Research Integrity Guardrails for Open Research\\
-\large An integrity-first agent toolkit for AI-assisted science}
+\large An integrity-first agent for the full research workflow ---\\
+grounded literature, verified experiments, honest statistics, auditable manuscripts}
 \author{Alif Mahmud\\
 \small Department of Electrical and Electronic Engineering\\
 \small Bangladesh University of Engineering and Technology (BUET), Dhaka, Bangladesh}
@@ -38,7 +39,8 @@ $n$, with non-significance reported as a result. Around these gates, RIGOR
 automates the experiment loop itself: the agent writes and edits the
 experiment code, proves every pipeline on a local smoke subset before any
 GPU is spent, dispatches multi-seed sweeps to free cloud GPUs (Kaggle
-unattended; Colab semi-attended, where one human tap doubles as the GPU
+unattended and recommended; Colab semi-attended and field-verified, where one
+human tap doubles as the GPU
 approval)---optionally scheduling across a research team's pooled per-account
 quotas---and passes every completed run through an integrity checklist
 before its numbers reach the researcher. The manuscript is treated the same
@@ -171,11 +173,23 @@ counts, stamping every entry with a fetch date so ``cites $N$'' claims carry
 an as-of date); validated open-access PDF retrieval (magic-byte checks with an
 arXiv fallback, because publisher ``OA'' links are sometimes HTML landing
 pages); and page-tagged full-text extraction, so a claim grounded in a paper's
-body cites a page. The integrity rules are short and absolute: no paper may be
-cited unless it is in the store; remembered papers are verified first; content
-claims trace to stored fields; citation counts are reported exactly as
-returned. \textbf{topic-watch} re-runs the store's own recorded queries and
-diffs for new papers, keeping a survey current before a revision.
+body cites a page.
+
+The \emph{report} command renders the collection as a document a researcher
+actually reads: every paper appears as a rich entry---title, Semantic
+Scholar / DOI / open-access-PDF links, citation counts, provenance, and the
+best available abstract with its source attributed---and, given the
+researcher's own project description as a \emph{focus}, the whole report is
+re-ranked and tiered (\textsc{core} / \textsc{related} /
+\textsc{peripheral}) by relevance to that focus. Relevance is a transparent
+IDF-weighted term-overlap score (title weighted over summary over abstract)
+whose matched terms are printed beside every paper, so the ranking is
+inspectable and correctable by eye rather than a black box. The integrity
+rules are short and absolute: no paper may be cited unless it is in the
+store; remembered papers are verified first; content claims trace to stored
+fields; citation counts are reported exactly as returned.
+\textbf{topic-watch} re-runs the store's own recorded queries and diffs for
+new papers, keeping a survey current before a revision.
 
 \subsection{Auditing the bibliography and the manuscript}
 \label{sec:audit}
@@ -270,7 +284,22 @@ back to Drive, and the agent's poller picks it up from the synced folder,
 validates it, and journals it alongside the Kaggle runs. Everything but the
 tap is automated---and the tap itself \emph{is} the explicit GPU approval
 the safety rule requires, turning the human checkpoint from a procedural
-promise into a structural necessity.
+promise into a structural necessity. The loop is \emph{field-verified}, not
+merely designed: a staged notebook executed on a live Colab VM and returned
+a token-stamped \texttt{results.json} through the synced folder, closing the
+round trip end-to-end before the capability was claimed here
+(Section~\ref{sec:case}).
+
+\paragraph{Choosing a backend.} The two backends are not equals, and the
+toolkit says so plainly. \textbf{Kaggle is the recommended default}: its
+official kernels API makes the entire loop headless---push, poll,
+download---which is what enables true fleet dispatch, overnight campaigns,
+and the two-moment (kickoff/debrief) workflow. \textbf{colab-run is the
+deliberate fallback}: one tap per run automates everything \emph{around}
+execution but not execution itself, so a ten-run sweep means ten taps.
+Reach for Colab when the week's Kaggle quota is exhausted, when a
+Colab-specific runtime is wanted, or when the per-run human checkpoint is
+itself desirable; route everything else through the Kaggle path.
 
 \textbf{verify-run} is the checklist every completed run passes before its
 numbers reach the researcher: all expected configurations present (a missing
@@ -358,11 +387,25 @@ one account whose GPU access was silently unavailable and rebalanced the
 schedule onto the rest; a transient network outage mid-campaign was healed by
 fresh-identifier retries, with no human intervention between kickoff and
 briefing.
+\item \textbf{colab-run} (field verification): the Colab loop was exercised
+live before being claimed in this paper---a staged notebook executed on a
+Colab VM and returned a token-stamped \texttt{results.json} through the
+synced folder, matching the injected token and seed exactly. The field test
+immediately exposed a real parameter-injection bug the unit tests had
+missed: Python-style \texttt{True}/\texttt{False} values were being parsed
+as JSON, injecting the truthy \emph{string} \texttt{'False'}, which would
+have made smoke-test mode impossible to disable. It was fixed and locked in
+as a regression test. We publish no capability we have not exercised---the
+same standard the toolkit enforces on its users' claims.
 \item \textbf{lit-review}: the collection was built from seven ranked queries,
 snowballing, recommendations, and a boolean bulk pass; abstract enrichment
 filled 9 of 39 missing abstracts from OpenAlex (the remainder are withheld by
 publishers---an honest, documented gap); a single batch refresh re-dated all
-citation counts.
+citation counts. With the project's own description as the report's
+\emph{focus}, the 245-paper collection tiers into 11 \textsc{core} / 95
+\textsc{related} / 139 \textsc{peripheral}---and the \textsc{core} tier
+surfaced, on its own, the same closest-rival paper a manual screen had
+previously identified.
 \item \textbf{manuscript layer}: all five of the case-study paper's
 architecture and concept diagrams are agent-written TikZ, iterated under the
 agent's own render-and-inspect loop; every result table and figure is
