@@ -14,7 +14,7 @@ construction* — so the three classic failure modes of AI-assisted research can
 | **Stale/fabricated numbers** — the manuscript says 3.56 but the regenerated table says 3.48 | `claims-audit` reconciles every numeric claim in the prose against the machine-generated tables + raw results; `bib-audit` does the same for every bibliography entry. Both **report and propose — they never auto-edit**. |
 | **Seed-noise claims** — "model X beats Y" on a gap that's inside random variation | `stat-check` runs paired-by-seed Wilcoxon/t tests and reports exact p-values and n. A non-significant result is a result, never an omission. |
 
-## The seven skills
+## The eight skills
 
 | Skill | What it does |
 |---|---|
@@ -24,6 +24,7 @@ construction* — so the three classic failure modes of AI-assisted research can
 | [`stat-check`](skills/stat-check/SKILL.md) | Paired-by-seed Wilcoxon signed-rank + paired t across multi-seed runs, with optional Holm correction. Groups runs exactly like your aggregator (newest run per seed supersedes; smoke runs excluded). |
 | [`topic-watch`](skills/topic-watch/SKILL.md) | Re-runs a collection's own recorded queries and diffs for papers published since — keeps a survey current before a revision. Manual by design. |
 | [`run-remote`](skills/run-remote/SKILL.md) | Drives unattended notebook execution on Kaggle's free GPU (papermill parameter injection → push → poll → download → parse), with quota safety: GPU is never enabled without the owner's explicit yes. |
+| [`colab-run`](skills/colab-run/SKILL.md) | Google Colab as a second free-GPU backend, honestly: free Colab has no headless-execution API, so the agent injects parameters and stages the notebook into your Drive-synced folder, you tap "Run all" once (that tap **is** the GPU approval), and the agent polls the synced folder, validates `results.json`, and journals it. |
 | [`verify-run`](skills/verify-run/SKILL.md) | The integrity checklist every completed run passes before its numbers reach a human: config completeness, smoke-test flags, futility stops, NaNs, parameter-count fingerprints, seed-count disclosure. |
 
 The division of labor is deliberate: **scripts do the mechanical extraction; the agent

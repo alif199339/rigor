@@ -30,7 +30,7 @@ Used naively, they import three well-documented failure modes into science:
 longer matches regenerated results tables), and **seed-noise claims** ("model X
 beats model Y" on a gap smaller than run-to-run random variation).
 
-RIGOR is a toolkit of seven *skills* — paired instruction files and small,
+RIGOR is a toolkit of eight *skills* — paired instruction files and small,
 dependency-light Python programs — that make an LLM agent's research assistance
 *grounded by construction* rather than by exhortation. Each skill combines a
 mechanical extraction script with explicit integrity rules the agent must
@@ -63,11 +63,13 @@ follow, and a human approval gate for every proposed change:
   result, never an omission.
 - **topic-watch** re-runs a collection's own recorded queries and diffs for
   newly published papers.
-- **run-remote** and **verify-run** dispatch parameterized notebooks
-  [@papermill] to free cloud GPUs unattended and pass every completed run
-  through an integrity checklist (configuration completeness, smoke-test flags,
-  divergence aborts, parameter-count fingerprints, seed-count disclosure)
-  before any number reaches the researcher.
+- **run-remote**, **colab-run**, and **verify-run** dispatch parameterized
+  notebooks [@papermill] to free cloud GPUs (Kaggle unattended; Colab
+  semi-attended through a Drive-synced folder, since free Colab exposes no
+  headless-execution API) and pass every completed run through an integrity
+  checklist (configuration completeness, smoke-test flags, divergence aborts,
+  parameter-count fingerprints, seed-count disclosure) before any number
+  reaches the researcher.
 
 The scripts are standard-library-first Python (3.10+; scipy and pypdf only
 where noted), fully usable standalone from the command line. The skill layer

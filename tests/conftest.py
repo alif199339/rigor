@@ -45,3 +45,8 @@ def stat():
 def watch(lit):
     # lit must be loaded first so topic_watch reuses the same lit_search module object
     return load("topic-watch", "topic_watch.py")
+
+
+@pytest.fixture(scope="session")
+def colab():
+    return load("colab-run", "colab_run.py")

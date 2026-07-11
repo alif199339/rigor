@@ -25,7 +25,7 @@ workflow---literature survey, experiment execution, statistical analysis, and
 manuscript drafting---and they import three well-documented failure modes:
 hallucinated citations, numbers in prose that silently drift from the data
 behind them, and superiority claims that random seed variation does not
-support. We present RIGOR, an open-source toolkit of seven agent
+support. We present RIGOR, an open-source toolkit of eight agent
 \emph{skills} (instruction files paired with small, dependency-light Python
 programs) that makes agent-assisted research \emph{grounded by construction}
 rather than by exhortation. RIGOR enforces three architectural guarantees:
@@ -37,10 +37,15 @@ gated on paired-by-seed significance tests that report exact $p$-values and
 $n$, with non-significance reported as a result. Around these gates, RIGOR
 automates the experiment loop itself: the agent writes and edits the
 experiment code, proves every pipeline on a local smoke subset before any
-GPU is spent, dispatches multi-seed sweeps unattended to free cloud
-GPUs---optionally scheduling across a research team's pooled per-account
+GPU is spent, dispatches multi-seed sweeps to free cloud GPUs (Kaggle
+unattended; Colab semi-attended, where one human tap doubles as the GPU
+approval)---optionally scheduling across a research team's pooled per-account
 quotas---and passes every completed run through an integrity checklist
-before its numbers reach the researcher. We describe the design, a
+before its numbers reach the researcher. The manuscript is treated the same
+way: \LaTeX{} compiled locally, diagrams written as TikZ code the agent
+renders and visually inspects itself, and every result table generated from
+raw run artifacts---numbers flow one way, from code to prose. We describe the
+design, a
 two-layer portability model that separates generic mechanics from per-project
 configuration, and a working case study on a real multi-seed forecasting
 project in which each tool produced verifiable findings, including a wrong
@@ -252,6 +257,21 @@ moments: the kickoff instruction and the debrief. One hard rule survives
 full autonomy: enabling GPU---which spends real, shared quota---requires the
 owner's explicit approval, every time, in every project.
 
+Version 1.2 adds \textbf{colab-run}, a second execution backend built around
+an honest platform constraint: unlike Kaggle, free Google Colab exposes no
+official headless-execution API, and RIGOR does not automate around a
+provider's terms. The design is therefore \emph{semi-attended}: the agent
+injects parameters (implementing the papermill injected-cell convention in
+the standard library) and stages the notebook into the researcher's local
+Google-Drive-synced folder, from which it appears in Colab within seconds;
+execution is a single tap (\emph{Runtime}~$\to$~\emph{Run all}) in any
+browser, including a phone; the notebook persists its \texttt{results.json}
+back to Drive, and the agent's poller picks it up from the synced folder,
+validates it, and journals it alongside the Kaggle runs. Everything but the
+tap is automated---and the tap itself \emph{is} the explicit GPU approval
+the safety rule requires, turning the human checkpoint from a procedural
+promise into a structural necessity.
+
 \textbf{verify-run} is the checklist every completed run passes before its
 numbers reach the researcher: all expected configurations present (a missing
 key is a silent mid-run failure, not a partial success); smoke-test flags
@@ -261,13 +281,48 @@ parameter counts matched exactly against anchors (an exact match fingerprints
 that the intended pipeline ran); and seed counts always disclosed, so a
 single-seed number is never presented as a robust average.
 
-The loop is closed on the manuscript side by a one-way rule: numbers flow
-\emph{code $\rightarrow$ results.json $\rightarrow$ aggregator $\rightarrow$
-generated tables and figures}, in one direction only. No metric is ever
-retyped by hand into prose; if a number looks wrong, the fix belongs in the
-code or the data, never in the text. claims-audit (Section~\ref{sec:audit})
-exists precisely to catch the places where that rule was broken by hand
-before the pipeline enforced it.
+\subsection{The manuscript layer: local \LaTeX{}, agent-drawn figures, one-way numbers}
+\label{sec:paper}
+
+RIGOR's workflow keeps the entire manuscript---text, tables, and diagrams---as
+plain text that compiles \emph{locally}, with the agent as typesetter and
+illustrator. This deliberately displaces three tools researchers usually
+reach for:
+
+\begin{itemize}
+\item \textbf{Overleaf} is replaced by a local \texttt{latexmk} build inside
+the researcher's editor: no compile-minute limits, no internet dependence,
+the full paper rebuilding in seconds, and the manuscript versioned in Git
+alongside the code that produced its numbers.
+\item \textbf{Diagramming tools (draw.io and kin)} are replaced by TikZ
+\emph{written by the agent}: an architecture diagram is code, so the
+researcher describes the figure in plain English and the agent writes the
+drawing---an infinitely-zoomable vector figure that remains editable, by the
+agent, for the life of the paper, instead of a mouse-drawn artifact that
+must be redrawn by hand at every revision.
+\item \textbf{AI image generators} are displaced for schematic figures by the
+same mechanism: TikZ output is exact, editable, and diff-able, where
+generated raster images are approximate, frozen, and blurry at print
+resolution---and subject to usage caps besides.
+\end{itemize}
+
+What makes this workable in practice is that the agent \emph{closes its own
+visual quality loop}: after compiling a figure it rasterizes the PDF, reads
+the image back, spots overlapping labels, clipped boxes, or bad spacing,
+edits the TikZ source, and recompiles---iterating until the figure is clean.
+A loop that previously required a human, a mouse, and an afternoon runs
+without either.
+
+Result tables and result figures never pass through human hands at all: an
+aggregator script reads every \texttt{results.json}, computes
+mean~$\pm$~std across seeds, and writes \texttt{\textbackslash input}-ready
+table fragments and figure PDFs directly into the manuscript tree. Numbers
+therefore flow \emph{code $\rightarrow$ results.json $\rightarrow$
+aggregator $\rightarrow$ generated tables and figures}, in one direction
+only: no metric is ever retyped by hand into prose, and if a number looks
+wrong the fix belongs in the code or the data, never in the text.
+claims-audit (Section~\ref{sec:audit}) exists precisely to catch the places
+where that rule was broken by hand before the pipeline enforced it.
 
 \section{Case study: a real project as first install}
 \label{sec:case}
@@ -308,6 +363,11 @@ snowballing, recommendations, and a boolean bulk pass; abstract enrichment
 filled 9 of 39 missing abstracts from OpenAlex (the remainder are withheld by
 publishers---an honest, documented gap); a single batch refresh re-dated all
 citation counts.
+\item \textbf{manuscript layer}: all five of the case-study paper's
+architecture and concept diagrams are agent-written TikZ, iterated under the
+agent's own render-and-inspect loop; every result table and figure is
+aggregator-generated from the raw run artifacts. Since the one-way pipeline
+was adopted, no metric has been hand-typed into that manuscript's prose.
 \item This paper's own bibliography was verified by resolving every DOI
 through doi.org content negotiation before inclusion.
 \end{itemize}
@@ -340,10 +400,11 @@ and extend---with the guarantee that everything it lets through leaves a
 verifiable trail.
 
 \paragraph{Future work.} The execution layer is backend-agnostic by design
-(prepare, push, poll, download, parse); the next release adds a Google Colab
-execution skill alongside Kaggle so groups can pool quota across both
-services, plus scheduled topic watching for teams with always-on machines,
-and a multi-user deployment study of RIGOR across a working research group.
+(prepare, stage, execute, collect, verify), and v1.2's Colab backend already
+lets groups pool quota across two free services. Next: fully headless Colab
+execution through the paid Colab Enterprise API for funded groups, scheduled
+topic watching for teams with always-on machines, and a multi-user
+deployment study of RIGOR across a working research group.
 
 \paragraph{Availability.} RIGOR is available under the MIT license at
 \url{https://github.com/alif199339/rigor}. Collections built with it

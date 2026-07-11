@@ -1,6 +1,6 @@
 # RIGOR — Research Integrity Guardrails for Open Research
 
-> **VERSION: 1.1** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.2** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -20,6 +20,7 @@ mechanics):
 | **stat-check** | Paired-by-seed Wilcoxon/t for "X beats Y" claims from multi-seed runs; exact p-values, optional Holm. | scipy |
 | **topic-watch** | Re-run a collection's recorded queries, diff for new papers. Manual only. | `S2_API_KEY`; lit-review present |
 | **run-remote** | Dispatch a notebook to Kaggle GPU via the runner (push→poll→download→parse). | Kaggle token, a sweep work dir |
+| **colab-run** | Semi-attended Colab backend via a Drive-synced folder (inject→stage→one-tap run→poll→journal); the tap doubles as GPU approval. | Google Drive for Desktop |
 | **verify-run** | Scientific-integrity checklist on a completed run's results.json. | the profile's `reference_results` |
 
 Integrity is the through-line: a citation must exist in the API-returned `papers.json`
@@ -99,6 +100,12 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.2** — New **colab-run** skill: Google Colab as a second free-GPU backend via a
+  Drive-synced folder. Free Colab has no headless-execution API (and RIGOR does not
+  automate around platform terms), so the design is semi-attended: the agent injects
+  parameters (papermill convention, stdlib-only) and stages the notebook; the researcher
+  taps "Run all" once (the tap = the GPU-approval gate); the agent polls the synced
+  folder, validates results.json, and journals it. +7 offline tests.
 - **v1.1** — Study naming externalized to `_shared/studies.json` (scripts fully generic);
   `--heavy` baseline names exposed on stat-check; public packaging (README, tests, CI,
   JOSS paper).
