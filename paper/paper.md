@@ -11,7 +11,7 @@ tags:
   - Python
 authors:
   - name: Alif Mahmud
-    orcid: 0000-0000-0000-0000
+    orcid: 0009-0001-5756-2202
     affiliation: 1
 affiliations:
   - name: Department of Electrical and Electronic Engineering, Bangladesh University of Engineering and Technology (BUET), Dhaka, Bangladesh
