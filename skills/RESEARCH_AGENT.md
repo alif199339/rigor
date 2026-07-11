@@ -3,7 +3,7 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.3** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.4** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -103,6 +103,14 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.4** — Bundled **worked examples** (`examples/` in the repo): fully-offline
+  synthetic demos for stat-check (a significant win vs. a seed-noise "win" at n=8) and
+  claims-audit (seeded MATCHED / NEAR-MISS / ORPHAN claims), plus a network bib-audit
+  demo that catches a deliberately fabricated citation — the offline demos run in CI
+  (`tests/test_examples.py`), so the walkthroughs cannot drift from the code. Papers
+  gained measured runtimes from the first install (14-entry bib audit in 51 s; 271
+  manuscript claims classified in 0.25 s) and softened absolute phrasing ("failures
+  surface mechanically" rather than "cannot happen"). 50 offline tests.
 - **v1.3** — **colab-run field-verified** on a live Colab VM (token-stamped round trip
   through the synced folder); the field test caught and fixed a boolean-injection bug
   (`json.loads` turning `False` into the truthy string `'False'` — smoke mode could

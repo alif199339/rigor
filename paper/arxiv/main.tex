@@ -82,8 +82,9 @@ that summarize results tables reproduce such rankings uncritically.
 
 Prompting an agent to ``be accurate'' does not fix any of these: the failure
 happens precisely when the model is confident. Our position is architectural:
-\emph{make the failure impossible to commit silently}. RIGOR contributes a
-small, auditable toolkit organized around three guarantees:
+\emph{integrity failures should be surfaced by mechanism, not caught by
+vigilance}. RIGOR contributes a small, auditable toolkit organized around
+three guarantees:
 
 \begin{itemize}
 \item \textbf{Grounded by construction} (Section~\ref{sec:lit}): every
@@ -362,16 +363,16 @@ bibliography, a 245-paper literature collection, and six 10-seed experiment
 studies executed remotely. Each tool produced concrete, verifiable findings:
 
 \begin{itemize}
-\item \textbf{bib-audit} (14 entries): one reference's title turned out to be
+\item \textbf{bib-audit} (14 entries, 51\,s of wall time): one reference's title turned out to be
 a paraphrase of the real paper's title (the entry resolved to nothing until
 the audit surfaced the correctly-titled record); three title-only matches hit
 different editions or records and were flagged with no auto-fix; two dataset
 resources were verified by URL liveness; five missing DOIs were recovered.
 The preprint-year calibration prevented three false alarms.
-\item \textbf{claims-audit} (one manuscript): 266 numeric claims classified
-(154 matched, 39 near-miss, 73 orphan) and 12 results-derived figures flagged
-as stale relative to the newest results---mechanizing, and extending, a manual
-audit that had found nine real text--data mismatches.
+\item \textbf{claims-audit} (one manuscript): 271 numeric claims classified
+(151 matched, 47 near-miss, 73 orphan) in 0.25\,s---mechanizing, and
+extending, a manual audit that had found nine real text--data mismatches, and
+leaving the human only the semantic adjudication of the flagged candidates.
 \item \textbf{stat-check} (14 models $\times$ 10 seeds): the nominally best
 model was statistically indistinguishable from several siblings (Wilcoxon
 $p\approx0.5$), while every family-versus-baseline comparison survived exactly
@@ -414,6 +415,14 @@ was adopted, no metric has been hand-typed into that manuscript's prose.
 \item This paper's own bibliography was verified by resolving every DOI
 through doi.org content negotiation before inclusion.
 \end{itemize}
+
+Nothing in the scripts is specific to the case study's domain. To make that
+concrete---and reviewable without any API key, GPU, or agent
+harness---the repository ships fully offline, synthetic worked examples
+(\texttt{examples/}) for the statistics and audit tools, plus a network demo
+in which \textbf{bib-audit} catches a deliberately fabricated citation; the
+offline examples are exercised end-to-end by the CI test suite, so the
+documented walkthroughs cannot drift from the code.
 
 \section{Limitations}
 

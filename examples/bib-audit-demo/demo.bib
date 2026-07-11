@@ -1,0 +1,31 @@
+% Three entries, one of each kind bib-audit exists to catch:
+%   lecun2015deep      -- real and correct           -> expected VERIFIED
+%   vaswani2014attention -- real paper, wrong year   -> expected MISMATCH (it's 2017)
+%   doe2023quantum     -- fabricated ("hallucinated") -> expected NOT FOUND
+% This demo needs network access (Semantic Scholar + Crossref). It works without an
+% API key too, just slower (the script backs off politely on rate limits).
+
+@article{lecun2015deep,
+  title   = {Deep learning},
+  author  = {LeCun, Yann and Bengio, Yoshua and Hinton, Geoffrey},
+  journal = {Nature},
+  volume  = {521},
+  number  = {7553},
+  pages   = {436--444},
+  year    = {2015},
+  doi     = {10.1038/nature14539}
+}
+
+@inproceedings{vaswani2014attention,
+  title     = {Attention is All you Need},
+  author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2014}
+}
+
+@article{doe2023quantum,
+  title   = {Quantum Blockchain Consensus for Federated Language Models on Mars},
+  author  = {Doe, Jane and Nobody, Alex},
+  journal = {Journal of Imaginary Results},
+  year    = {2023}
+}

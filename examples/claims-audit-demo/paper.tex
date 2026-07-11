@@ -1,0 +1,16 @@
+% A four-sentence "manuscript" seeded with one of each claim type:
+%   10.30  -> MATCHED    (agrees with the generated table)
+%   11.21  -> NEAR-MISS  (the table says 11.15 -- classic stale drift after a re-sweep)
+%   47.5   -> ORPHAN     (appears in no table or results file; a human must adjudicate
+%                         whether it is a legitimate derived value or unsupported)
+\documentclass{article}
+\begin{document}
+
+Our compact model \emph{small\_A} reaches a mean error of 10.30\% with only
+18{,}442 parameters. The heavy baseline trails at 11.21\% despite using an
+order of magnitude more parameters. We estimate that deploying the compact
+model reduces inference cost by 47.5\%.
+
+\input{tables/summary}
+
+\end{document}

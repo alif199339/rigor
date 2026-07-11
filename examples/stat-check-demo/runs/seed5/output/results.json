@@ -1,0 +1,30 @@
+{
+  "notebook": "demo_experiment.ipynb",
+  "seed": 5,
+  "smoke_test": false,
+  "span_start": null,
+  "timestamp_utc": "2026-07-12T00:00:05+00:00",
+  "results": {
+    "small_A": {
+      "rmse": 205.0,
+      "mae": 153.75,
+      "mape": 10.25,
+      "params": 18442,
+      "futility_stop": null
+    },
+    "small_B": {
+      "rmse": 205.8,
+      "mae": 154.35,
+      "mape": 10.29,
+      "params": 18574,
+      "futility_stop": null
+    },
+    "big_baseline": {
+      "rmse": 221.8,
+      "mae": 166.35,
+      "mape": 11.09,
+      "params": 241355,
+      "futility_stop": null
+    }
+  }
+}

@@ -96,7 +96,8 @@ numbers drifting between regenerated results and prose, and statistically
 unsupported superiority claims.
 
 RIGOR's contribution is architectural rather than algorithmic. It reframes each
-integrity problem so the failure cannot happen silently: citations must
+integrity problem so that failures surface mechanically rather than depending
+on human vigilance: citations must
 originate from a live bibliographic API response stored with provenance;
 manuscripts are diffed against their own ground-truth data; superiority claims
 are gated on paired tests of the actual per-seed results. The **division of
@@ -116,15 +117,16 @@ Beyond the CI suite, RIGOR is dogfooded on a real research project (a
 multi-seed regional electricity-load forecasting study) as its first install,
 where each tool produced verifiable findings:
 
-- *bib-audit*, on a 14-entry manuscript bibliography, caught one reference whose
-  title was a paraphrase of the real (existing) paper's title, flagged three
-  title-only matches to different editions or records (deliberately proposing
-  no auto-fix), verified two dataset resources by URL, and recovered five
-  missing DOIs.
-- *claims-audit*, on the accompanying manuscript, classified 266 numeric claims
-  (154 matched, 39 near-miss, 73 orphan) and flagged 12 results-derived figures
-  as stale relative to the newest experiment results — mechanizing an earlier
-  manual audit that had found nine real text-vs-data mismatches.
+- *bib-audit* audited the study's 14-entry manuscript bibliography in 51
+  seconds of wall time, catching one reference whose title was a paraphrase of
+  the real (existing) paper's title, flagging three title-only matches to
+  different editions or records (deliberately proposing no auto-fix), verifying
+  two dataset resources by URL, and recovering five missing DOIs.
+- *claims-audit* classified the accompanying manuscript's 271 numeric claims
+  (151 matched, 47 near-miss, 73 orphan) against its generated tables and raw
+  results in 0.25 seconds — mechanizing an earlier manual audit that had found
+  nine real text-vs-data mismatches, and leaving the human only the semantic
+  adjudication of the flagged candidates.
 - *stat-check*, over a 14-model, 10-seed study, showed that the nominally best
   model was statistically indistinguishable from several siblings (Wilcoxon
   $p \approx 0.5$) while the family-versus-baseline claims survived exactly
@@ -132,6 +134,14 @@ where each tool produced verifiable findings:
   honest, defensible claim.
 - The bibliography of this paper was itself verified by resolving every DOI
   through doi.org content negotiation before inclusion.
+
+Nothing in the scripts is specific to the case study's domain. To make that
+concrete — and reviewable without any API key, GPU, or agent harness — the
+repository ships fully offline, synthetic worked examples (`examples/`) for
+the statistics and audit tools, plus a network demo in which *bib-audit*
+catches a deliberately fabricated citation; the offline examples are exercised
+end-to-end by the CI suite, so the documented walkthroughs cannot silently
+drift from the code.
 
 # Acknowledgements
 

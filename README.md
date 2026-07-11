@@ -62,6 +62,25 @@ python -m pip install kaggle papermill pyyaml   # only if you use run-remote
 
 The scripts are stdlib-only Python 3.10+ except where noted. Windows: set `PYTHONUTF8=1`.
 
+## Try it in five minutes — bundled examples (offline, no API key)
+
+The repo ships synthetic worked examples in [`examples/`](examples/README.md) so you can
+exercise the audit and statistics tools before wiring up anything real — including,
+fully offline: a multi-seed study where `stat-check` shows one model comparison is
+genuinely significant and another is seed noise, and a tiny manuscript where
+`claims-audit` flags a seeded stale number and an orphan. A third (network) demo has
+`bib-audit` catch a deliberately **fabricated citation**. The offline examples run in CI,
+so the walkthroughs can't drift from the code:
+
+```bash
+python skills/stat-check/stat_check.py \
+    --runs-glob "examples/stat-check-demo/runs/*/output/results.json" \
+    --studies examples/stat-check-demo/studies.json \
+    --study demo --pairs small_A:small_B,small_A:big_baseline --holm
+```
+
+Expected output and the other two demos: [`examples/README.md`](examples/README.md).
+
 ## Quickstart (scripts also work standalone, without any agent)
 
 ```bash
