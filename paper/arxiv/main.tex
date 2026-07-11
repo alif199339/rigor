@@ -34,7 +34,13 @@ populated exclusively by live bibliographic API responses; (2)~audit tools
 that reconcile bibliographies and manuscript numbers against ground truth
 \emph{report and propose but never edit}; and (3)~every ``X beats Y'' claim is
 gated on paired-by-seed significance tests that report exact $p$-values and
-$n$, with non-significance reported as a result. We describe the design, a
+$n$, with non-significance reported as a result. Around these gates, RIGOR
+automates the experiment loop itself: the agent writes and edits the
+experiment code, proves every pipeline on a local smoke subset before any
+GPU is spent, dispatches multi-seed sweeps unattended to free cloud
+GPUs---optionally scheduling across a research team's pooled per-account
+quotas---and passes every completed run through an integrity checklist
+before its numbers reach the researcher. We describe the design, a
 two-layer portability model that separates generic mechanics from per-project
 configuration, and a working case study on a real multi-seed forecasting
 project in which each tool produced verifiable findings, including a wrong
@@ -89,6 +95,15 @@ with a paired $t$ reference~\cite{virtanen2020scipy}, optional Holm
 correction~\cite{holm1979simple}); output always includes $n$ and exact
 $p$-values, and a null result is reported, never dropped.
 \end{itemize}
+
+These guarantees would matter little if the agent merely \emph{advised} while
+a human ran everything by hand. RIGOR therefore also automates the loop the
+guarantees protect (Section~\ref{sec:auto}): the agent prepares and edits the
+experiment code itself, proves it end-to-end on a local smoke subset,
+dispatches unattended multi-seed sweeps to free cloud GPUs, and verifies
+everything that comes back---so the integrity gates sit inside a workflow
+that is genuinely hands-off between the researcher's kickoff instruction and
+the returned briefing.
 
 \section{Related work}
 
@@ -201,12 +216,42 @@ is $2/2^{10} \approx 0.002$; the tool documents this floor so users read
 $p=0.002$ as ``a clean sweep,'' not as arbitrary precision. Holm correction is
 available and its use (or absence) is disclosed in the output.
 
-\subsection{Unattended execution with a verification gate}
+\subsection{Autonomous experimentation: write, smoke-test, dispatch, verify}
+\label{sec:auto}
 
-\textbf{run-remote} drives parameterized notebooks~\cite{papermill} through
-free cloud GPU services (parameter injection, push, poll, download, parse),
-with a hard safety rule: enabling GPU---which spends a real, shared weekly
-quota---requires the project owner's explicit approval every time.
+RIGOR's execution layer treats the agent as more than a dispatcher: the agent
+\emph{writes and maintains the experiment code itself}, under the same
+integrity gates as everything else. Given a training notebook, it applies the
+four edits that make the notebook remotely runnable---a single tagged
+parameter cell for injection~\cite{papermill}; an environment path shim so
+the identical notebook runs on a laptop, on Kaggle, or on Colab; a loud
+\texttt{SMOKE\_TEST} switch whose banner makes pipeline-check numbers
+impossible to mistake for results; and a final cell exporting every metric,
+type-cast, to a \texttt{results.json}---and then debugs its own work against
+a local CPU environment. The \emph{smoke-test discipline} is a hard gate: no
+configuration is dispatched to a GPU until the full pipeline has run
+end-to-end on a tiny local subset, so debugging happens in seconds on the
+laptop, never in minutes of donated GPU quota.
+
+\textbf{run-remote} then drives the sweep unattended: parameter injection,
+push to a free cloud GPU service, polling, artifact download, parsing, and an
+append-only experiment journal. Failures are absorbed, not fatal: a failed
+run is logged and retried under a fresh run identifier (so a stale journal
+entry can never silently mask a retry) while the rest of the sweep proceeds.
+
+The same layer scales to \emph{fleet dispatch}. A research group can register
+each member's own cloud account and API token in a local roster (credentials
+stay machine-level and never enter the repository), and the agent plans a
+campaign across the pooled per-account quotas: it probes each account before
+spending anything (a one-minute kernel confirming a GPU actually attaches),
+stages datasets where each account needs them, partitions the sweeps, writes
+one sweep file per account, launches the runners in parallel, monitors the
+logs, self-heals transient failures, and returns a verified briefing rather
+than a directory of raw files. The researcher's role collapses to two
+moments: the kickoff instruction and the debrief. One hard rule survives
+full autonomy: enabling GPU---which spends real, shared quota---requires the
+owner's explicit approval, every time, in every project.
+
 \textbf{verify-run} is the checklist every completed run passes before its
 numbers reach the researcher: all expected configurations present (a missing
 key is a silent mid-run failure, not a partial success); smoke-test flags
@@ -215,6 +260,14 @@ honored (pipeline-check numbers are never reported as results); early-abort
 parameter counts matched exactly against anchors (an exact match fingerprints
 that the intended pipeline ran); and seed counts always disclosed, so a
 single-seed number is never presented as a robust average.
+
+The loop is closed on the manuscript side by a one-way rule: numbers flow
+\emph{code $\rightarrow$ results.json $\rightarrow$ aggregator $\rightarrow$
+generated tables and figures}, in one direction only. No metric is ever
+retyped by hand into prose; if a number looks wrong, the fix belongs in the
+code or the data, never in the text. claims-audit (Section~\ref{sec:audit})
+exists precisely to catch the places where that rule was broken by hand
+before the pipeline enforced it.
 
 \section{Case study: a real project as first install}
 \label{sec:case}
@@ -242,6 +295,14 @@ $p\approx0.5$), while every family-versus-baseline comparison survived exactly
 earlier phase of the project did not survive; the published claim was reshaped
 accordingly---the tool's purpose working as intended, against its own
 project's preferred narrative.
+\item \textbf{run-remote / verify-run}: the six 10-seed studies were executed
+as unattended GPU sweeps---more than sixty runs plus retries, dispatched by
+the agent across multiple registered free-tier accounts, every run passing
+the verification checklist before aggregation. The pre-flight probe caught
+one account whose GPU access was silently unavailable and rebalanced the
+schedule onto the rest; a transient network outage mid-campaign was healed by
+fresh-identifier retries, with no human intervention between kickoff and
+briefing.
 \item \textbf{lit-review}: the collection was built from seven ranked queries,
 snowballing, recommendations, and a boolean bulk pass; abstract enrichment
 filled 9 of 39 missing abstracts from OpenAlex (the remainder are withheld by
@@ -277,6 +338,12 @@ put a mechanical, auditable gate at each one. The result is a small toolkit
 that a researcher can copy into any project, drive with or without an agent,
 and extend---with the guarantee that everything it lets through leaves a
 verifiable trail.
+
+\paragraph{Future work.} The execution layer is backend-agnostic by design
+(prepare, push, poll, download, parse); the next release adds a Google Colab
+execution skill alongside Kaggle so groups can pool quota across both
+services, plus scheduled topic watching for teams with always-on machines,
+and a multi-user deployment study of RIGOR across a working research group.
 
 \paragraph{Availability.} RIGOR is available under the MIT license at
 \url{https://github.com/alif199339/rigor}. Collections built with it
