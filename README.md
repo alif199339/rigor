@@ -43,6 +43,9 @@ git clone https://github.com/alif199339/rigor
 cp -r rigor/skills <your-project>/.claude/skills   # merge if .claude/skills exists
 ```
 
+(or download the archive attached to the
+[latest release](https://github.com/alif199339/rigor/releases/latest))
+
 Then open a fresh Claude Code session in your project and say:
 
 > Read `.claude/skills/RESEARCH_AGENT.md` and onboard this project.
@@ -134,6 +137,14 @@ pytest -q
 
 The suite is fully offline — all HTTP is stubbed — and CI runs it on Linux + Windows,
 Python 3.10 and 3.12.
+
+## Feedback & adoption
+
+Using RIGOR — or tried it and hit friction? Open a
+[Discussion](https://github.com/alif199339/rigor/discussions) for adoption reports,
+questions, and ideas, or an [Issue](https://github.com/alif199339/rigor/issues) for
+bugs. Where and how RIGOR is used directly shapes the roadmap — and an adoption
+report is the one signal an open-source maintainer cannot measure any other way.
 
 ## Citation & attribution
 
