@@ -414,7 +414,11 @@ citation counts. With the project's own description as the report's
 \emph{focus}, the 245-paper collection tiers into 11 \textsc{core} / 95
 \textsc{related} / 139 \textsc{peripheral}---and the \textsc{core} tier
 surfaced, on its own, the same closest-rival paper a manual screen had
-previously identified.
+previously identified. Continued field use later surfaced two API edge-case
+crashes---Semantic Scholar answering a literal \texttt{null} where a list was
+expected, and a title whose comma collided with OpenAlex's reserved filter
+syntax---both reproduced offline and locked in as regression tests, the same
+path the parameter-injection bug above followed.
 \item \textbf{manuscript layer}: all five of the case-study paper's
 architecture and concept diagrams are agent-written TikZ, iterated under the
 agent's own render-and-inspect loop; every result table and figure is

@@ -11,12 +11,13 @@ abstract: >-
 authors:
   - family-names: Mahmud
     given-names: Alif
+    orcid: "https://orcid.org/0009-0001-5756-2202"
     affiliation: >-
       Department of Electrical and Electronic Engineering, Bangladesh University
       of Engineering and Technology (BUET), Dhaka, Bangladesh
 license: MIT
 repository-code: "https://github.com/alif199339/rigor"
-version: "1.5"
+version: "1.5.1"
 date-released: "2026-07-12"
 keywords:
   - research integrity

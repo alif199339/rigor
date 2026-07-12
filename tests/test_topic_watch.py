@@ -34,6 +34,23 @@ def test_watch_diffs_and_merges(watch, lit, tmp_path, monkeypatch):
     assert any(s.startswith("watch:") for s in store2["NEW999"]["_sources"])
 
 
+def test_watch_survives_null_data(watch, lit, tmp_path, monkeypatch):
+    # regression: S2 can answer {"data": null}; the scan loop must treat it as empty
+    out = tmp_path / "topic"
+    out.mkdir()
+    store = {"K": {"paperId": "K", "title": "Known", "year": 2024,
+                   "_sources": ["search:some query"]}}
+    (out / "papers.json").write_text(json.dumps(store), encoding="utf-8")
+    monkeypatch.setattr(lit, "http_get", lambda url: {"data": None})
+    monkeypatch.setattr(lit.time, "sleep", lambda s: None)
+    monkeypatch.setattr(sys, "argv", ["topic_watch.py", "--out", str(out),
+                                      "--since-year", "2025", "--limit", "10"])
+    watch.main()                                                    # must not raise
+    today = datetime.date.today().isoformat()
+    md = (out / f"watch_{today}.md").read_text(encoding="utf-8")
+    assert "0 new paper(s)" in md
+
+
 def test_recover_queries_reads_search_and_bulk_tags(watch):
     store = {"a": {"_sources": ["search:q one", "snowball-references:X"]},
              "b": {"_sources": ["bulk:q two"]},

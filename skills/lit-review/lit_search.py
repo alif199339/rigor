@@ -131,7 +131,10 @@ def openalex_get(url: str):
             with urllib.request.urlopen(req, timeout=60) as r:
                 return json.loads(r.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            if e.code == 404:
+            if e.code in (400, 404):
+                # 404 = no such work; 400 = OpenAlex rejected the query itself.
+                # Neither is retryable, and one bad record must not abort a
+                # checkpointed batch run (enrich loops over many titles).
                 return None
             if e.code in (429, 500, 502, 503, 504):
                 time.sleep(min(3 * (attempt + 1), 30))
@@ -141,6 +144,13 @@ def openalex_get(url: str):
             # URLError, RemoteDisconnected, timeouts, resets -- all retryable here
             time.sleep(min(2 ** (attempt + 1), 20))
     return None
+
+
+def _oa_filter_value(text: str) -> str:
+    """OpenAlex filter syntax reserves ',' (filter separator) and '|' (OR) with no
+    escape mechanism -- URL-encoding does not help, the API decodes before parsing --
+    so a title containing either draws an HTTP 400. Replace them with spaces."""
+    return re.sub(r"\s+", " ", (text or "").replace(",", " ").replace("|", " ")).strip()
 
 
 def reconstruct_abstract(inv: dict):
@@ -205,7 +215,7 @@ def cmd_search(args):
     if args.year_from:
         url += f"&year={args.year_from}-"
     data = http_get(url)
-    papers = data.get("data", [])
+    papers = data.get("data") or []
     n = merge(store, papers, f"search:{args.query}")
     save_store(args.out, store)
     print(f"[search] '{args.query}': {len(papers)} returned, {n} new "
@@ -249,7 +259,7 @@ def cmd_lookup(args):
         q = urllib.parse.quote(args.title)
         url = f"{GRAPH}/paper/search/match?query={q}&fields={FIELDS}"
         data = http_get(url)
-        matches = data.get("data", [])
+        matches = data.get("data") or []
         if not matches:
             print(f"[lookup] NO MATCH for title: {args.title}")
             return
@@ -271,7 +281,9 @@ def cmd_snowball(args):
         url = (f"{GRAPH}/paper/{urllib.parse.quote(args.seed)}/{d}"
                f"?fields={FIELDS_LINKED}&limit={args.limit}")
         data = http_get(url)
-        papers = [row.get(wrap) for row in data.get("data", [])]
+        # S2 returns {"data": null} -- a literal null, not a missing key -- for some
+        # papers' link lists, so a plain .get(k, []) default would pass None into the loop
+        papers = [row.get(wrap) for row in (data.get("data") or [])]
         n = merge(store, papers, f"snowball-{d}:{args.seed}")
         print(f"[snowball] {d} of {args.seed}: {len(papers)} returned, {n} new")
         time.sleep(SLEEP)
@@ -294,7 +306,7 @@ def cmd_contexts(args):
     url = (f"{GRAPH}/paper/{urllib.parse.quote(args.seed)}/citations"
            f"?fields={FIELDS_CTX}&limit={min(args.limit, 1000)}")
     data = http_get(url)
-    rows = data.get("data", []) if isinstance(data, dict) else []
+    rows = (data.get("data") or []) if isinstance(data, dict) else []
     ctx_dir = os.path.join(args.out, "contexts")
     os.makedirs(ctx_dir, exist_ok=True)
     slug = re.sub(r"[^\w]+", "_", args.seed).strip("_")[:50]
@@ -449,7 +461,8 @@ def cmd_enrich(args):
         if work is None:  # title fallback, guarded by a similarity check
             title = p.get("title") or ""
             if title:
-                d = openalex_get(f"{OPENALEX}?filter=title.search:{urllib.parse.quote(title)}&per_page=1")
+                d = openalex_get(f"{OPENALEX}?filter=title.search:"
+                                 f"{urllib.parse.quote(_oa_filter_value(title))}&per_page=1")
                 cand = ((d or {}).get("results") or [None])[0]
                 if cand and difflib.SequenceMatcher(
                         None, _norm_title(title), _norm_title(cand.get("title") or "")).ratio() >= 0.85:

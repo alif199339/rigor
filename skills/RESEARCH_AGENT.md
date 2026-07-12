@@ -3,7 +3,7 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.5** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.5.1** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -103,6 +103,18 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.5.1** — Two field-reported crash bugs in **lit-review**, both confirmed and fixed.
+  (1) `snowball` crashed when Semantic Scholar answers `{"data": null}` — a literal null,
+  not a missing key, so a `.get(k, [])` default never fires; the same latent pattern sat
+  in `search`, `lookup`, `contexts`, and topic-watch's scan loop, and all five sites now
+  use the `or []` idiom the bulk path already used. (2) `enrich`'s title fallback put raw
+  titles into OpenAlex's `filter=title.search:` value, where `,` separates filters and
+  `|` means OR with no escape mechanism (URL-encoding doesn't help — the API decodes
+  before parsing), so a comma-bearing title drew an HTTP 400 that aborted the whole
+  checkpointed run; titles are now sanitized (`_oa_filter_value`) and `openalex_get`
+  treats 400 as a per-record miss rather than fatal. Six regression tests added — the
+  offline suite is now **74 tests**. The arXiv paper's field-verification section
+  records both.
 - **v1.5** — **verify-run is now a real CLI** (`skills/verify-run/verify_run.py`), not a
   SKILL.md-only procedure: a stdlib-only, report-only integrity checklist over
   results.json files (config completeness, `smoke_test` flag, NaN/None metrics, futility

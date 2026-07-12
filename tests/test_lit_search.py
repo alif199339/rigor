@@ -128,6 +128,67 @@ def test_report_without_focus_still_rich(lit, tmp_path):
     assert "Semantic Scholar](https://www.semanticscholar.org/paper/P1)" in md
 
 
+def test_snowball_survives_null_data(lit, tmp_path, monkeypatch):
+    # regression: S2 returns {"data": null} -- a literal null value, not a missing
+    # key -- for some papers' reference lists, which crashed `snowball --direction refs`
+    import argparse
+    out = str(tmp_path / "topic")
+    monkeypatch.setattr(lit, "http_get", lambda url: {"data": None})
+    monkeypatch.setattr(lit.time, "sleep", lambda s: None)
+    lit.cmd_snowball(argparse.Namespace(out=out, seed="DOI:10.1/x",
+                                        direction="refs", limit=50))   # must not raise
+    assert lit.load_store(out) == {}
+
+
+def test_search_and_lookup_survive_null_data(lit, tmp_path, monkeypatch):
+    import argparse
+    out = str(tmp_path / "topic")
+    monkeypatch.setattr(lit, "http_get", lambda url: {"data": None})
+    monkeypatch.setattr(lit.time, "sleep", lambda s: None)
+    lit.cmd_search(argparse.Namespace(out=out, query="q", limit=25, year_from=None,
+                                      bulk=False, max=300))            # must not raise
+    lit.cmd_lookup(argparse.Namespace(out=out, id=None, title="Some title"))
+    assert lit.load_store(out) == {}
+
+
+def test_oa_filter_value_strips_reserved_chars(lit):
+    v = lit._oa_filter_value("Attention, please: graphs, load | forecasting,")
+    assert "," not in v and "|" not in v
+    assert "graphs load forecasting" in v            # collapsed to single spaces
+    assert lit._oa_filter_value(None) == ""
+
+
+def test_enrich_title_fallback_sanitizes_filter(lit, tmp_path, monkeypatch):
+    # regression: a title containing/ending in a comma reached OpenAlex's filter
+    # syntax verbatim (commas separate filters, no escaping) -> HTTP 400 mid-run
+    import argparse, json, os
+    out = str(tmp_path / "topic")
+    os.makedirs(out)
+    store = {"P1": {"paperId": "P1", "title": "Forecasting loads, grids, and graphs,",
+                    "_sources": ["search:q"]}}
+    json.dump(store, open(os.path.join(out, "papers.json"), "w", encoding="utf-8"))
+    seen = []
+    monkeypatch.setattr(lit, "openalex_get",
+                        lambda url: seen.append(url) or {"results": []})
+    monkeypatch.setattr(lit.time, "sleep", lambda s: None)
+    lit.cmd_enrich(argparse.Namespace(out=out, source="openalex"))
+    assert seen, "title fallback was never queried"
+    assert "," not in seen[-1] and "%2C" not in seen[-1]
+
+
+def test_openalex_get_returns_none_on_400(lit, monkeypatch):
+    # a malformed query for ONE record must not abort a checkpointed batch run
+    import io
+    import urllib.error
+    import urllib.request
+
+    def boom(req, timeout=60):
+        raise urllib.error.HTTPError(req.full_url, 400, "Bad Request",
+                                     None, io.BytesIO(b""))
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    assert lit.openalex_get(lit.OPENALEX + "?filter=title.search:x") is None
+
+
 def test_search_merges_into_store(lit, tmp_path, monkeypatch):
     out = str(tmp_path / "topic")
     monkeypatch.setattr(lit, "http_get", lambda url: {"data": [

@@ -74,7 +74,7 @@ def main():
         url = (f"{L.GRAPH}/paper/search?query={urllib.parse.quote(q)}"
                f"&fields={L.FIELDS}&limit={args.limit}&year={since}-")
         data = L.http_get(url)
-        rows = data.get("data", []) if isinstance(data, dict) else []
+        rows = (data.get("data") or []) if isinstance(data, dict) else []
         n_new = 0
         for p in rows:
             pid = p.get("paperId")
