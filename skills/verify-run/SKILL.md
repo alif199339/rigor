@@ -15,6 +15,25 @@ record that Kaggle runs produce (Kaggle never returns an executed notebook — `
 `anchors` (expected parameter counts + the headline finding — an exact-match fingerprint
 that the intended pipeline ran).
 
+## Mechanized first pass — `verify_run.py`
+
+The deterministic half of the checklist is a script (stdlib-only, report-only). Run it
+first, then apply the agent judgment below to whatever it surfaces:
+
+```bash
+python verify_run.py --runs-glob "<results_glob>" \
+    --expect 1A,1B,2A,MTGNN,GTCN,GWN \
+    --anchors 1A=45393,MTGNN=76705
+```
+
+It reports, per run and across seeds: config completeness (missing key = silent mid-run
+failure), the `smoke_test` flag, NaN/None metrics, futility stops (with reason),
+parameter-anchor mismatches (wrong-pipeline fingerprint), and seed-count disclosure
+(single-seed runs are flagged as not-robust). It exits non-zero on any hard finding
+(missing config / NaN / anchor mismatch), so it also works as a pre-report or CI gate.
+It never edits results or reference numbers — the semantic calls below are still the
+agent's.
+
 ## Layer 1 — the checklist
 
 1. **Locate the record.** Kaggle: `<sweep_dir>/runs/<run_id>/output/results.json` + the

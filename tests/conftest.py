@@ -50,3 +50,23 @@ def watch(lit):
 @pytest.fixture(scope="session")
 def colab():
     return load("colab-run", "colab_run.py")
+
+
+@pytest.fixture(scope="session")
+def verify():
+    return load("verify-run", "verify_run.py")
+
+
+@pytest.fixture(scope="session")
+def runner():
+    # templates/runner.py lives outside skills/, so load it directly. papermill is
+    # imported lazily inside prepare_run(), so this import needs only pyyaml.
+    path = os.path.join(ROOT, "templates", "runner.py")
+    name = "runner_under_test"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod

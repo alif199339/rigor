@@ -19,10 +19,19 @@ should preserve that shape and the integrity guarantees.
 5. **No secrets in the repo.** Keys are environment variables; Kaggle tokens live in
    `~/.kaggle*`. The per-install `project_profile.yaml` / `studies.json` are git-ignored.
 
+## Getting help
+
+Questions about using or extending RIGOR are welcome. Open a
+[Discussion](https://github.com/alif199339/rigor/discussions) for usage questions,
+adoption reports, and design ideas, or an
+[Issue](https://github.com/alif199339/rigor/issues) for bugs and suspected wrong
+verdicts. There is no separate mailing list or chat — the tracker and Discussions are
+the support channels, and the maintainer monitors both.
+
 ## Dev setup
 
 ```bash
-python -m pip install pytest scipy pypdf
+python -m pip install pytest scipy pypdf pyyaml
 pytest -q          # the suite is fully offline (HTTP is stubbed) and must stay that way
 ```
 

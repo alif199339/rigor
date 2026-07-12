@@ -51,7 +51,7 @@ design, a
 two-layer portability model that separates generic mechanics from per-project
 configuration, and a working case study on a real multi-seed forecasting
 project in which each tool produced verifiable findings, including a wrong
-bibliography title, 39 stale-drift candidates in one manuscript, and a
+bibliography title, 47 stale-drift candidates in one manuscript, and a
 single-seed ``best model'' headline that dissolved under paired testing.
 RIGOR is available under the MIT license.
 \end{abstract}
@@ -125,9 +125,16 @@ OpenAlex~\cite{priem2022openalex}, and Crossref~\cite{hendricks2020crossref}%
 by ad-hoc scripts without an integrity policy connecting them to what the
 agent ultimately writes. Reproducibility tooling (workflow managers,
 experiment trackers) addresses artifact provenance but not the last mile where
-numbers enter prose. RIGOR's contribution is not a new algorithm but the
-missing policy layer: a set of enforceable rules, each backed by a mechanical
-tool, spanning literature, bibliography, manuscript, and statistics.
+numbers enter prose. Open manuscript-preparation systems come closest in
+spirit: Manubot assembles papers from version-controlled sources with
+citation-by-identifier~\cite{himmelstein2019manubot}, and showyourwork ties an
+article's figures to the code that regenerates
+them~\cite{showyourwork}. Both enforce reproducible \emph{manuscript assembly};
+RIGOR is complementary, governing the agent-driven loop that produces the
+numbers and citations \emph{before} they reach the manuscript. RIGOR's
+contribution is not a new algorithm but the missing policy layer: a set of
+enforceable rules, each backed by a mechanical tool, spanning literature,
+bibliography, manuscript, and statistics.
 
 \section{Design}
 
@@ -135,7 +142,8 @@ tool, spanning literature, bibliography, manuscript, and statistics.
 
 Each RIGOR capability is a \emph{skill}: a folder containing a
 \texttt{SKILL.md} (the agent-facing contract: when to act, integrity rules,
-how to adjudicate tool output) and one Python script (the mechanics:
+how to adjudicate tool output) and---in all but the remote-execution skill,
+which drives a shared runner template---one Python script (the mechanics:
 API calls, parsing, classification). This split is deliberate. The scripts are
 deterministic and testable offline (all HTTP is stubbed in CI); the judgment
 calls---is this near-miss number a stale claim or a coincidentally similar

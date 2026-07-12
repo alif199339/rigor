@@ -53,8 +53,11 @@ import sys
 import time
 from pathlib import Path
 
-import papermill as pm
 import yaml
+
+# papermill is imported lazily inside prepare_run() -- it is heavy and only needed to
+# stage a notebook, so the pure helpers (journal append/dedup, results parsing) stay
+# importable, and testable offline, without it.
 
 # The kaggle CLI reads notebook files with the platform default encoding unless
 # Python's UTF-8 mode is on; on Windows that default is cp1252, which crashes on
@@ -169,6 +172,24 @@ def now_iso() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
+def summarize_mape(parsed: dict | None) -> str:
+    """One-line 'cfg=MAPE%' summary for the experiments journal. Casts every value
+    through float() so numpy scalars -- which json.dump(..., default=str) would silently
+    stringify -- format numerically, and skips any config with no usable mape."""
+    if not parsed or "results" not in parsed:
+        return "-"
+    parts = []
+    for k, v in (parsed.get("results") or {}).items():
+        m = (v or {}).get("mape")
+        if m is None:
+            continue
+        try:
+            parts.append(f"{k}={float(m):.2f}%")
+        except (TypeError, ValueError):
+            continue
+    return ", ".join(parts) if parts else "-"
+
+
 def kaggle(*args, check=True):
     """Invoke the kaggle CLI via THIS interpreter (avoids PATH ambiguity on Windows)."""
     cmd = [sys.executable, "-m", "kaggle", *args]
@@ -184,6 +205,8 @@ def run_id_for(sweep: dict, i: int) -> str:
 
 
 def prepare_run(sweep: dict, run_id: str, params: dict, username: str) -> Path:
+    import papermill as pm  # lazy: heavy, and only needed here (keeps helpers testable)
+
     run_dir = RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     src_notebook = (AGENT_DIR / sweep["notebook"]).resolve()
@@ -290,12 +313,7 @@ def run_one(sweep: dict, run_id: str, params: dict, username: str, acct_name: st
         print(f"  [FAILED] see {log_path}")
         return
 
-    mape_summary = "-"
-    if dl["parsed"] and "results" in dl["parsed"]:
-        r = dl["parsed"]["results"]
-        mape_summary = ", ".join(
-            f"{k}={float(v['mape']):.2f}%" for k, v in r.items() if v.get("mape") is not None
-        )
+    mape_summary = summarize_mape(dl["parsed"])
 
     append_experiment_row(dict(
         run_id=run_id, account=acct_name, params=params, status="complete",

@@ -102,6 +102,10 @@ python skills/claims-audit/claims_audit.py --tex main.tex --tables tables \
 # is that "X beats Y" claim real?
 python skills/stat-check/stat_check.py --runs-glob "sweeps/runs/*/output/results.json" --list
 python skills/stat-check/stat_check.py --runs-glob "..." --study mystudy --pairs modelA:baseline --holm
+
+# integrity-check a completed run before trusting its numbers (exits non-zero on any hard finding)
+python skills/verify-run/verify_run.py --runs-glob "sweeps/runs/*/output/results.json" \
+       --expect modelA,baseline --anchors modelA=45393
 ```
 
 Every command's options and integrity rules are documented in its skill's `SKILL.md`.
@@ -131,7 +135,7 @@ studies are auto-named from the notebook + span.
 ## Tests
 
 ```bash
-python -m pip install pytest scipy pypdf
+python -m pip install pytest scipy pypdf pyyaml
 pytest -q
 ```
 

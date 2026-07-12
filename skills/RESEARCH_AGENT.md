@@ -3,7 +3,7 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.4** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.5** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -103,6 +103,21 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.5** — **verify-run is now a real CLI** (`skills/verify-run/verify_run.py`), not a
+  SKILL.md-only procedure: a stdlib-only, report-only integrity checklist over
+  results.json files (config completeness, `smoke_test` flag, NaN/None metrics, futility
+  stops with reason, exact-match parameter anchors, seed-count disclosure) that exits
+  non-zero on any hard finding, so it doubles as a CI/pre-report gate. `templates/runner.py`
+  was refactored for offline testability (papermill imported lazily inside `prepare_run`;
+  the journal-summary/cast logic extracted to a pure `summarize_mape`), and both gained
+  tests — the offline suite is now **68 tests**. The JOSS/arXiv papers gained a
+  state-of-the-field comparison (Manubot [DOI-verified] and showyourwork position RIGOR as
+  complementary — they govern manuscript *assembly*, RIGOR governs the agent-execution loop
+  that produces the numbers) and an explicit target-audience statement; the JOSS paper was
+  trimmed back to ≤1000 words; a stale claims-count in the arXiv abstract (39→47) was fixed;
+  and the "eight skills paired with Python programs" phrasing was made precise (the
+  remote-execution skill drives a shared runner template). CONTRIBUTING gained a
+  "Getting help" section.
 - **v1.4** — Bundled **worked examples** (`examples/` in the repo): fully-offline
   synthetic demos for stat-check (a significant win vs. a seed-noise "win" at n=8) and
   claims-audit (seeded MATCHED / NEAR-MISS / ORPHAN claims), plus a network bib-audit
