@@ -5,11 +5,13 @@ title: "RIGOR: Research Integrity Guardrails for Open Research"
 abstract: >-
   An integrity-first toolkit of agent skills for AI-assisted research: grounded
   literature discovery (zero hallucinated citations by construction), bibliography
-  auditing against Semantic Scholar and Crossref, manuscript-vs-data claim
-  reconciliation, paired-by-seed significance testing, unattended remote
-  experiment execution with scientific-integrity verification, and an append-only
-  cross-session lab notebook with evidence-cited findings and citation-checked
-  narrative compilation.
+  auditing with retraction flags, content-level citation verification
+  (miscitation detection), manuscript-vs-data claim reconciliation,
+  paired-by-seed significance and TOST equivalence testing, dataset
+  fingerprinting and drift detection, unattended remote experiment execution
+  with scientific-integrity verification, an append-only cross-session lab
+  notebook, diff-verified reviewer-response tracking, and a one-command
+  pre-submission gate with artifact freezing.
 authors:
   - family-names: Mahmud
     given-names: Alif
@@ -19,7 +21,7 @@ authors:
       of Engineering and Technology (BUET), Dhaka, Bangladesh
 license: MIT
 repository-code: "https://github.com/alif199339/rigor"
-version: "1.6"
+version: "1.7"
 date-released: "2026-07-12"
 keywords:
   - research integrity

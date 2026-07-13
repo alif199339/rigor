@@ -9,11 +9,16 @@ values ALIGNED by seed so tests are properly paired.
 For a requested model pair it computes, on the seeds present in BOTH configs:
   - Wilcoxon signed-rank (paired, non-parametric -- the primary test at n~10)
   - paired t-test (ttest_rel, for reference)
-  - n, median + mean paired difference, and which model is better.
+  - n, median + mean paired difference with a 95% CI, and Cohen's dz effect size
+  - with --tost <margin>: a TOST equivalence test (two one-sided paired t against
+    +/-margin) -- the only way to CLAIM two configs are equivalent; a failed
+    difference test is not evidence of equivalence.
 Optional Holm-Bonferroni correction across all tested pairs (disclosed either way).
 
 Integrity: n=10 seeds is LOW power -- exact p-values and n are always printed, never
-asterisks alone; a non-significant result is reported as such, never dropped.
+asterisks alone; a non-significant result is reported as such, never dropped; and
+"no significant difference" is never upgraded to "equivalent/tie" without a TOST
+at a pre-declared margin.
 
 Needs scipy. Run with an interpreter that has it (the profile's python_scipy):
   python stat_check.py --runs-glob "<runs>/*/output/results.json" --list
@@ -98,7 +103,7 @@ def mean_of(cfg_dict, metric):
     return stats.mean(vals) if vals else float("inf")
 
 
-def test_pair(study_data, a, b, metric):
+def test_pair(study_data, a, b, metric, tost_margin=None):
     ca, cb = study_data.get(a, {}), study_data.get(b, {})
     seeds = sorted(set(ca) & set(cb), key=lambda s: (s is None, s))
     xa = [ca[s][metric] for s in seeds if metric in ca[s] and metric in cb[s]]
@@ -106,13 +111,30 @@ def test_pair(study_data, a, b, metric):
     n = len(xa)
     out = {"a": a, "b": b, "n": n, "mean_a": stats.mean(xa) if xa else None,
            "mean_b": stats.mean(xb) if xb else None, "w_p": None, "t_p": None,
-           "median_diff": None, "mean_diff": None, "note": None}
+           "median_diff": None, "mean_diff": None, "ci95": None, "dz": None,
+           "tost_p": None, "tost_margin": tost_margin, "note": None}
     if n < 3:
         out["note"] = f"only {n} shared seed(s) -- too few to test"
         return out
     diffs = [x - y for x, y in zip(xa, xb)]          # a - b (lower metric = better)
     out["median_diff"] = stats.median(diffs)
-    out["mean_diff"] = stats.mean(diffs)
+    md = out["mean_diff"] = stats.mean(diffs)
+    sd = stats.stdev(diffs)
+    if sd > 0:
+        se = sd / n ** 0.5
+        h = float(sps.t.ppf(0.975, n - 1)) * se
+        out["ci95"] = (md - h, md + h)
+        out["dz"] = md / sd
+        if tost_margin:
+            # TOST: two one-sided paired t against the equivalence bounds +/-margin;
+            # the reported p is the larger of the two (both must reject)
+            p_lo = float(sps.t.sf((md + tost_margin) / se, n - 1))   # H0: diff <= -m
+            p_hi = float(sps.t.cdf((md - tost_margin) / se, n - 1))  # H0: diff >= +m
+            out["tost_p"] = max(p_lo, p_hi)
+    else:
+        out["ci95"] = (md, md)                        # zero variance: CI collapses
+        if tost_margin:
+            out["tost_p"] = 0.0 if abs(md) < tost_margin else 1.0
     if all(d == 0 for d in diffs):
         out["w_p"] = out["t_p"] = 1.0
         out["note"] = "identical on every seed"
@@ -177,6 +199,10 @@ def main():
     ap.add_argument("--metric", default="mape", choices=["mape", "rmse", "mae"])
     ap.add_argument("--pairs", help="comma-separated A:B pairs, e.g. 1A:GTCN,3A:2A")
     ap.add_argument("--holm", action="store_true", help="apply Holm-Bonferroni across tested pairs")
+    ap.add_argument("--tost", type=float, metavar="MARGIN",
+                    help="equivalence margin in metric units (e.g. 0.10 = 0.10 pp MAPE): "
+                         "runs a TOST equivalence test per pair; required before "
+                         "claiming two configs are equivalent/tied")
     ap.add_argument("--alpha", type=float, default=0.05)
     ap.add_argument("--runs-glob", default=DEFAULT_GLOB)
     ap.add_argument("--studies", default=None,
@@ -215,9 +241,11 @@ def main():
         heavy = [h.strip() for h in args.heavy.split(",") if h.strip()]
         pairs = default_battery(data, args.metric, heavy)
 
-    results = [test_pair(data, a, b, args.metric) for a, b in pairs]
+    results = [test_pair(data, a, b, args.metric, tost_margin=args.tost)
+               for a, b in pairs]
     decisions = holm(results, args.alpha) if args.holm else {}
 
+    tost_col = " TOST p |" if args.tost else ""
     L = [f"# stat-check -- study `{args.study}`, metric `{args.metric.upper()}`",
          "",
          f"*Paired-by-seed tests. n is the number of seeds present in BOTH configs. "
@@ -225,24 +253,35 @@ def main():
          f"Lower {args.metric.upper()} is better; a negative median diff means the FIRST "
          f"model wins.*",
          "",
-         "| Pair (A vs B) | n | mean A | mean B | median Δ(A−B) | Wilcoxon p | paired-t p | verdict |",
-         "|---|---|---|---|---|---|---|---|"]
+         f"| Pair (A vs B) | n | mean A | mean B | median Δ(A−B) | mean Δ [95% CI] | dz "
+         f"| Wilcoxon p | paired-t p |{tost_col} verdict |",
+         "|---|---|---|---|---|---|---|---|---|" + ("---|" if args.tost else "")]
     for i, r in enumerate(results):
         if r["n"] < 3:
-            L.append(f"| {r['a']} vs {r['b']} | {r['n']} | -- | -- | -- | -- | -- | {r['note']} |")
+            skip = "-- | " * (7 + (1 if args.tost else 0))
+            L.append(f"| {r['a']} vs {r['b']} | {r['n']} | {skip}{r['note']} |")
             continue
         better = r["a"] if r["mean_diff"] < 0 else r["b"]
         sig = (r["w_p"] is not None and r["w_p"] <= args.alpha)
+        equiv = (args.tost and r["tost_p"] is not None and r["tost_p"] <= args.alpha)
         if args.holm and i in decisions:
             sig = decisions[i][1]
             verdict = (f"**{better} wins** (Holm-adj)" if sig
                        else f"no sig. diff (Holm thr {decisions[i][0]:.4f})")
         else:
             verdict = f"**{better} wins**" if sig else "no significant difference"
+        if not sig and args.tost:
+            verdict = (f"**equivalent within ±{args.tost:g}**" if equiv else
+                       f"inconclusive: neither different nor equivalent at ±{args.tost:g}")
         if r["note"]:
             verdict += f" ({r['note']})"
+        lo, hi = r["ci95"]
+        ci = f"{r['mean_diff']:+.3f} [{lo:+.3f}, {hi:+.3f}]"
+        dz = f"{r['dz']:+.2f}" if r["dz"] is not None else "n/a"
+        tp = f" {fmt_p(r['tost_p'])} |" if args.tost else ""
         L.append(f"| {r['a']} vs {r['b']} | {r['n']} | {r['mean_a']:.3f} | {r['mean_b']:.3f} | "
-                 f"{r['median_diff']:+.3f} | {fmt_p(r['w_p'])} | {fmt_p(r['t_p'])} | {verdict} |")
+                 f"{r['median_diff']:+.3f} | {ci} | {dz} | {fmt_p(r['w_p'])} | "
+                 f"{fmt_p(r['t_p'])} |{tp} {verdict} |")
 
     if args.holm:
         L += ["", f"*Holm-Bonferroni correction applied across {len([r for r in results if r['n']>=3])} "
@@ -250,6 +289,13 @@ def main():
     else:
         L += ["", f"*No multiple-comparison correction (single/independent pairs). Add `--holm` "
               f"when scanning many pairs at once.*"]
+    if args.tost:
+        L += ["", f"*TOST equivalence at margin ±{args.tost:g} {args.metric.upper()} "
+              f"(two one-sided paired t; the reported p is the larger of the two sides).*"]
+    else:
+        L += ["", "*Note: \"no significant difference\" is NOT evidence of equivalence — "
+              "to claim two configs are equivalent/tied, rerun with `--tost <margin>` "
+              "at a pre-declared margin.*"]
 
     text = "\n".join(L)
     print(text)

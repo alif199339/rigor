@@ -1,6 +1,6 @@
 ---
 name: claims-audit
-description: Reconcile every numeric claim in a manuscript's prose/captions against ground-truth data (aggregator-generated tables + results.json). Flags stale-drift (a table re-swept but the prose kept the old number), orphan numbers (in no table/result), and stale figures (older than the newest run). Emits candidates; never edits the manuscript. Use after a sweep re-run / before submission, paired with the main.tex reshape.
+description: Reconcile every numeric claim in a LaTeX or Markdown manuscript's prose/captions against ground-truth data (aggregator-generated tables + results.json). Flags stale-drift (a table re-swept but the prose kept the old number), orphan numbers (in no table/result), and stale figures (older than the newest run). Emits candidates; never edits the manuscript. Use after a sweep re-run / before submission, paired with the main.tex reshape.
 ---
 
 # /claims-audit — do the manuscript's numbers still match the data?

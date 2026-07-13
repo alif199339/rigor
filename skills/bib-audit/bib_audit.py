@@ -257,6 +257,19 @@ def crossref_by_doi(doi):
     return rec_from_crossref((d or {}).get("message")) if d else None
 
 
+def openalex_retracted(doi):
+    """True/False from OpenAlex's is_retracted (sourced from Retraction Watch);
+    None when the work isn't in OpenAlex or the call fails. Never fatal."""
+    mailto = os.environ.get("CROSSREF_MAILTO", "research@example.com")
+    url = (f"https://api.openalex.org/works/doi:{urllib.parse.quote(norm_doi(doi))}"
+           f"?select=is_retracted&mailto={urllib.parse.quote(mailto)}")
+    try:
+        d = _get(url, {"User-Agent": f"bib-audit/1.0 (mailto:{mailto})"})
+        return None if d is None else bool(d.get("is_retracted"))
+    except Exception:
+        return None
+
+
 def crossref_by_title(title):
     mailto = os.environ.get("CROSSREF_MAILTO", "research@example.com")
     d = crossref_get(f"{CROSSREF}?query.bibliographic={urllib.parse.quote(title)}"
@@ -367,6 +380,20 @@ def audit_entry(e):
         if rec.get("page"):
             res["suggest"].append(f"pages = {{{rec['page']}}}")
 
+    # retraction check (Retraction Watch data via OpenAlex) -- only when we're
+    # confident about the work's identity, on whichever DOI we trust
+    check_doi = doi or (rec.get("doi") if same_work else None)
+    if check_doi:
+        retracted = openalex_retracted(check_doi)
+        if retracted:
+            res["verdict"] = "RETRACTED"
+            res["notes"].insert(0, "OpenAlex (Retraction Watch data) marks this work "
+                                   "RETRACTED -- do not cite it as support; if it must "
+                                   "be discussed, cite it AS retracted.")
+            return res
+        if retracted is None:
+            res["notes"].append("retraction status could not be checked (not in OpenAlex).")
+
     # a "hard" diff = title drift or a >2yr gap (needs a human); a missing-DOI diff is
     # pure enrichment and keeps the entry VERIFIED.
     hard = any(d[0] != "doi" for d in res["diffs"])
@@ -381,7 +408,7 @@ def title_is_papery(f):
 
 # ---------------- report ----------------
 
-_ORDER = ["MISMATCH", "NOT-FOUND", "UNVERIFIABLE", "NON-PAPER-OK", "VERIFIED"]
+_ORDER = ["RETRACTED", "MISMATCH", "NOT-FOUND", "UNVERIFIABLE", "NON-PAPER-OK", "VERIFIED"]
 
 
 def write_report(results, bib_path, out_path):
@@ -398,6 +425,7 @@ def write_report(results, bib_path, out_path):
         "",
         "| Verdict | Count | Meaning |",
         "|---|---|---|",
+        f"| RETRACTED | {counts['RETRACTED']} | the cited work is retracted -- remove or cite AS retracted |",
         f"| MISMATCH | {counts['MISMATCH']} | found, but a field conflicts -- fix before submission |",
         f"| NOT-FOUND | {counts['NOT-FOUND']} | not in S2 or Crossref -- verify it exists |",
         f"| UNVERIFIABLE | {counts['UNVERIFIABLE']} | unpublished/submitted or uncheckable |",

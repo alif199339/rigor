@@ -3,7 +3,7 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.6** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.7** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -26,6 +26,10 @@ mechanics):
 | **colab-run** | Semi-attended Colab fallback via a Drive-synced folder (inject→stage→one-tap run→poll→journal); the tap doubles as GPU approval. Field-verified. Kaggle is the recommended headless default. | Google Drive for Desktop |
 | **verify-run** | Scientific-integrity checklist on a completed run's results.json. | the profile's `reference_results` |
 | **lab-notebook** | Append-only cross-session investigation log: per-track grounded entries (findings cite evidence), session-start digest, compiled NOTEBOOK.md with superseded-entry markers; sub-agent `audit`/`narrate` workflows + `check-narrative` citation guardrail. | the profile's `notebook_dir` |
+| **cite-check** | Content-level citation verification: pairs every \cite-bearing claim sentence with the cited work's abstract (lit-review stores only) into a worksheet; agent judges SUPPORTED/NOT-SUPPORTED/CANT-VERIFY quoting the source. | a lit-review store |
+| **data-audit** | Dataset fingerprint + degeneracy (constant/all-null/dup columns, NaNs) + drift verify (exit 1) for the data experiments consume. | numpy for .npy stats |
+| **rebuttal** | Reviewer comments → responses → `check` verifies every change-claim against the real revision diff; compiles RESPONSE.md. | a diff of the revision |
+| **submit-gate** | Runs the audit battery from gate.yaml → SUBMISSION_READINESS.md (READY/NOT-READY); `freeze`/`verify-freeze` sha256-snapshot the submitted artifacts. | pyyaml; a gate.yaml |
 
 Integrity is the through-line: a citation must exist in the API-returned `papers.json`
 before it may be used; audit skills *report and propose*, never auto-edit; stat-check
@@ -104,6 +108,30 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.7** — **Four new skills (13 total) + three upgrades**, targeting the remaining
+  universal researcher pain points. New: **cite-check** (content-level citation
+  verification — pairs every \cite-bearing claim sentence with the cited work's
+  abstract from lit-review stores into a worksheet; the agent judges
+  SUPPORTED/NOT-SUPPORTED/CANT-VERIFY quoting the source verbatim; catches
+  miscitations existence checks miss); **data-audit** (dataset fingerprint +
+  degeneracy detection — all-constant/all-null/duplicate columns, creeping
+  nulls/NaNs — and drift verification with honest exit codes; the
+  constant-column class of silent data bug is now mechanically catchable);
+  **rebuttal** (reviewer comments → responses → `check` mechanically verifies
+  every "we have revised…" claim against the actual revision diff via anchors +
+  quotes; compiles RESPONSE.md); **submit-gate** (one-command audit battery →
+  SUBMISSION_READINESS.md with a READY/NOT-READY verdict, plus `freeze`/
+  `verify-freeze` sha256 snapshots of the submitted artifacts). Upgrades:
+  **stat-check** gains TOST equivalence testing (`--tost <margin>`), 95% CIs on
+  the mean paired difference, and Cohen's dz — with the new integrity rule that
+  "no significant difference" is never upgraded to "equivalent/tied" without a
+  TOST at a pre-declared margin; **bib-audit** gains a RETRACTED verdict
+  (Retraction Watch data via OpenAlex `is_retracted`, most-severe rank);
+  **claims-audit** now audits Markdown manuscripts too (frontmatter/code/
+  citation-keys/URLs scrubbed — e.g. a JOSS paper.md). 31 new offline tests —
+  the suite is now **119 tests**. The whole build was dogfooded through
+  lab-notebook as a real 8-track investigation (including a live correction
+  chain when a logged test count was wrong).
 - **v1.6** — **New ninth skill: lab-notebook** (`skills/lab-notebook/`), an append-only
   cross-session log for investigations that outlive a single session and fan out into
   parallel tracks. Entries are typed (`progress`/`finding`/`blocker`/`decision`/

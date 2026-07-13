@@ -83,6 +83,57 @@ def test_default_battery_best_vs_runnerup_and_baselines(stat, tmp_path):
     assert pairs == [("A", "B")]                            # deduped: same pair twice
 
 
+def make_jittered_runs(tmp_path, n_seeds=8, offset=0.0, jitter=0.01):
+    """B = A + offset +/- jitter (alternating) -> paired diffs with real variance."""
+    runs = tmp_path / "runs"
+    for s in range(n_seeds):
+        d = runs / f"r{s}" / "output"
+        d.mkdir(parents=True)
+        a = 3.0 + 0.01 * s
+        b = a + offset + (jitter if s % 2 == 0 else -jitter)
+        (d / "results.json").write_text(json.dumps({
+            "notebook": "exp.ipynb", "span_start": None, "seed": s,
+            "smoke_test": False, "timestamp_utc": f"2026-01-{s + 1:02d}T00:00:00",
+            "results": {"A": {"mape": a}, "B": {"mape": b}}}))
+    return str(runs / "*" / "output" / "results.json")
+
+
+def test_tost_declares_equivalence_when_diff_tiny(stat, tmp_path):
+    g = make_jittered_runs(tmp_path, offset=0.0, jitter=0.01)
+    data = stat.load_studies(g)["exp"]
+    r = stat.test_pair(data, "A", "B", "mape", tost_margin=0.2)
+    assert r["tost_p"] is not None and r["tost_p"] < 0.05    # equivalent at ±0.2
+    lo, hi = r["ci95"]
+    assert -0.2 < lo <= hi < 0.2                             # CI inside the margin
+
+
+def test_tost_inconclusive_when_diff_exceeds_margin(stat, tmp_path):
+    g = make_jittered_runs(tmp_path, offset=0.5, jitter=0.01)
+    data = stat.load_studies(g)["exp"]
+    r = stat.test_pair(data, "A", "B", "mape", tost_margin=0.1)
+    assert r["tost_p"] > 0.5                                 # cannot claim equivalence
+
+
+def test_tost_zero_variance_paths(stat, tmp_path):
+    # constant offset -> sd == 0 -> the degenerate TOST branch
+    g = make_runs(tmp_path, n_seeds=4, offset=0.5)
+    data = stat.load_studies(g)["exp"]
+    assert stat.test_pair(data, "A", "B", "mape", tost_margin=0.1)["tost_p"] == 1.0
+    g2 = make_runs(tmp_path / "z", n_seeds=4, offset=0.0)
+    data2 = stat.load_studies(g2)["exp"]
+    r = stat.test_pair(data2, "A", "B", "mape", tost_margin=0.1)
+    assert r["tost_p"] == 0.0 and r["note"] == "identical on every seed"
+
+
+def test_ci95_and_effect_size(stat, tmp_path):
+    g = make_jittered_runs(tmp_path, offset=0.5, jitter=0.01)
+    data = stat.load_studies(g)["exp"]
+    r = stat.test_pair(data, "A", "B", "mape")
+    lo, hi = r["ci95"]
+    assert lo < r["mean_diff"] < hi and lo < -0.45 and hi > -0.55  # brackets -0.5
+    assert r["dz"] < -5                                       # huge standardized effect
+
+
 def test_holm_thresholds(stat):
     results = [{"w_p": 0.001}, {"w_p": 0.04}, {"w_p": 0.5}]
     d = stat.holm(results, alpha=0.05)

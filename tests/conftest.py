@@ -58,6 +58,26 @@ def labnb():
 
 
 @pytest.fixture(scope="session")
+def citec():
+    return load("cite-check", "cite_check.py")
+
+
+@pytest.fixture(scope="session")
+def dataa():
+    return load("data-audit", "data_audit.py")
+
+
+@pytest.fixture(scope="session")
+def rebut():
+    return load("rebuttal", "rebuttal.py")
+
+
+@pytest.fixture(scope="session")
+def gate():
+    return load("submit-gate", "submit_gate.py")
+
+
+@pytest.fixture(scope="session")
 def verify():
     return load("verify-run", "verify_run.py")
 

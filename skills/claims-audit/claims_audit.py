@@ -66,8 +66,15 @@ def as_float(tok):
 
 # ---------------- manuscript side ----------------
 
+def is_markdown(path):
+    return path.lower().endswith((".md", ".markdown"))
+
+
 def load_body(path):
     text = open(path, encoding="utf-8").read()
+    if is_markdown(path):
+        # strip YAML frontmatter (title/date/authors are metadata, not claims)
+        return re.sub(r"\A---\r?\n.*?\r?\n---\r?\n", "", text, flags=re.S)
     m = re.search(r"\\begin\{document\}(.*)\\end\{document\}", text, re.S)
     return m.group(1) if m else text
 
@@ -75,6 +82,8 @@ def load_body(path):
 def extract_figures(body):
     figs = []
     for m in re.finditer(r"\\(?:incfig|includegraphics)(?:\[[^\]]*\])?\{([^}]+)\}", body):
+        figs.append(m.group(1).strip())
+    for m in re.finditer(r"!\[[^\]]*\]\(([^)\s]+)", body):       # markdown images
         figs.append(m.group(1).strip())
     return figs
 
@@ -85,9 +94,18 @@ def extract_pending(body):
     return [(m.group(1) or "??.??") for m in re.finditer(r"\\pend(?:\[([^\]]*)\])?", body)]
 
 
-def scrub_for_claims(body):
+def scrub_for_claims(body, markdown=False):
     """Blank out anything whose numbers are NOT prose claims: comments, table \\inputs,
-    figure includes, refs/cites/labels, and \\pend placeholders (reported separately)."""
+    figure includes, refs/cites/labels, and \\pend placeholders (reported separately).
+    Markdown mode scrubs the equivalents: code, citation keys, link/image URLs."""
+    if markdown:
+        body = re.sub(r"```.*?```", " ", body, flags=re.S)       # fenced code blocks
+        body = re.sub(r"<!--.*?-->", " ", body, flags=re.S)      # HTML comments
+        body = re.sub(r"`[^`\n]*`", " ", body)                   # inline code
+        body = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", body)        # images
+        body = re.sub(r"\]\([^)]+\)", "]", body)                 # link URLs (text kept)
+        body = re.sub(r"\[@[^\]]+\]", " ", body)                 # pandoc citation keys
+        return body
     body = re.sub(r"(?<!\\)%.*", "", body)                       # comments
     for cmd in ("input", "includegraphics", "incfig", "cite", "ref", "eqref", "cref",
                 "Cref", "autoref", "label", "url", "usepackage", "include",
@@ -220,7 +238,8 @@ def figure_staleness(figs, fig_dir, results_glob):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--tex", required=True)
+    ap.add_argument("--tex", required=True,
+                    help="the manuscript: LaTeX (.tex) or Markdown (.md, e.g. a JOSS paper)")
     ap.add_argument("--tables", required=True)
     ap.add_argument("--results", required=True, help="glob for results.json")
     ap.add_argument("--figures", default=None, help="default: <tex-dir>/figures")
@@ -236,7 +255,7 @@ def main():
     body = load_body(args.tex)
     figs = extract_figures(body)
     pending = extract_pending(body)
-    claims = extract_claims(scrub_for_claims(body))
+    claims = extract_claims(scrub_for_claims(body, markdown=is_markdown(args.tex)))
 
     pool = pool_from_tables(args.tables) + pool_from_results(args.results,
                                                              load_study_map(args.studies))

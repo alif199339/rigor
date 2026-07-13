@@ -21,7 +21,10 @@ $G = "<sweep_dir>\runs\*\output\results.json"           # the profile's results_
 & $P $S --runs-glob $G --study <study>                   # default battery (see below)
 & $P $S --runs-glob $G --study <study> --pairs modelA:modelB,modelC:modelD
 & $P $S --runs-glob $G --study <study> --pairs modelA:baseline1 --holm --out report.md
+& $P $S --runs-glob $G --study <study> --pairs modelA:modelB --tost 0.10   # equivalence test
 #   --metric mape|rmse|mae   (default mape)     --alpha 0.05
+#   --tost MARGIN  TOST equivalence test at ±MARGIN (metric units) — required before
+#                  any "equivalent/tied/indistinguishable" claim
 #   --runs-glob   REQUIRED in practice (default is cwd-relative runs/*/output/results.json)
 #   --studies     JSON name map; defaults to _shared/studies.json if present (curated:
 #                 unknown notebooks skipped); no map -> auto-named "<notebook-stem>@<span>"
@@ -53,6 +56,12 @@ This directly answers the paper's two central questions for any study.
 - Floor value: with all 10 paired diffs the same sign, the exact two-sided Wilcoxon
   p = 2/2¹⁰ = **0.00195 ≈ 0.0020** — that's the smallest p n=10 can produce, and it's
   what a clean sweep returns.
+- **mean Δ [95% CI]** bounds the size of the difference; **dz** (Cohen's d for paired
+  data, meanΔ/sdΔ) is the standardized effect size — report it when reviewers ask
+  "significant, but is it big?".
+- **TOST p** (only with `--tost`): p ≤ α means the paired difference is statistically
+  *inside* ±margin — the only result that licenses an "equivalent" claim. A pair can be
+  neither significantly different nor equivalent: report that as **inconclusive**.
 
 ## Integrity rules (non-negotiable)
 
@@ -66,6 +75,12 @@ This directly answers the paper's two central questions for any study.
   were tested independently.
 - Never convert a p-value into a stronger claim than it supports. "Model X is nominally
   best but indistinguishable from three siblings (p>0.4)" is the honest form of "X wins."
+- **A failed difference test is NOT evidence of equivalence.** Before writing
+  "equivalent", "tied", or "statistically indistinguishable" in a manuscript, run
+  `--tost <margin>` with a margin declared *before* looking at the result (e.g. the
+  smallest gap the paper elsewhere treats as meaningful), and report the TOST p. If
+  TOST doesn't reject either, the honest wording is "no significant difference
+  (p=X); equivalence within ±m not established (TOST p=Y)".
 
 ## When to run it
 

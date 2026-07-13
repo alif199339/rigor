@@ -26,7 +26,7 @@ workflow---literature survey, experiment execution, statistical analysis, and
 manuscript drafting---and they import three well-documented failure modes:
 hallucinated citations, numbers in prose that silently drift from the data
 behind them, and superiority claims that random seed variation does not
-support. We present RIGOR, an open-source toolkit of nine agent
+support. We present RIGOR, an open-source toolkit of thirteen agent
 \emph{skills} (instruction files paired with small, dependency-light Python
 programs) that makes agent-assisted research \emph{grounded by construction}
 rather than by exhortation. RIGOR enforces three architectural guarantees:
@@ -49,7 +49,12 @@ renders and visually inspects itself, and every result table generated from
 raw run artifacts---numbers flow one way, from code to prose. Investigations
 that outlive a session are carried by an append-only lab notebook whose
 findings cite evidence artifacts and whose agent-written narrative is
-mechanically checked against the log. We describe the
+mechanically checked against the log. Around the submission itself:
+equivalence claims are gated on TOST rather than inferred from failed
+difference tests; retracted and miscited references are flagged; datasets are
+fingerprinted against silent drift; and a one-command pre-submission gate,
+SHA-256 artifact freezing, and diff-verified reviewer responses close the
+loop. We describe the
 design, a
 two-layer portability model that separates generic mechanics from per-project
 configuration, and a working case study on a real multi-seed forecasting
@@ -218,11 +223,28 @@ an error---na\"ively flagging it would have produced false alarms on a third
 of our case-study bibliography. Second, when a title-only match disagrees on
 year by more than two years, the finding is flagged but \emph{no fix is
 auto-suggested}: the match is likely a different edition or a review of the
-same work, and a plausible-looking auto-fix would be worse than none.
+same work, and a plausible-looking auto-fix would be worse than none. Each
+confidently-identified work is additionally checked against Retraction Watch
+data (via OpenAlex's \texttt{is\_retracted}); a \textsc{retracted} verdict
+ranks above every other finding, with the instruction to remove the citation
+or cite the work explicitly \emph{as} retracted.
 
-\textbf{claims-audit} extracts every numeric literal from a LaTeX manuscript's
-prose and captions (skipping generated table inputs, references, labels, and
-layout dimensions) and classifies each against a ground-truth pool built from
+\textbf{cite-check} closes the gap existence checks cannot: a real paper cited
+for a claim it never makes. The script extracts every citation-bearing
+sentence, resolves each key against the bibliography, and pairs it with the
+cited work's abstract---drawn only from lit-review stores, so provenance
+holds and the tool itself needs no network. The agent then judges each pairing
+\textsc{supported} (only with a verbatim quote from the abstract---no quote,
+no verdict), \textsc{not-supported} (a candidate for the human, never an
+auto-edit), or \textsc{cant-verify} (the claim lives outside what an abstract
+covers; the fulltext path is suggested). Judging from model memory of a paper
+is prohibited: if the evidence is not in the worksheet, the verdict is
+\textsc{cant-verify}, not a recollection.
+
+\textbf{claims-audit} extracts every numeric literal from a LaTeX or Markdown
+manuscript's prose and captions (skipping generated table inputs, references,
+labels, layout dimensions---and, for Markdown, frontmatter, code blocks,
+citation keys, and URLs) and classifies each against a ground-truth pool built from
 the machine-generated tables plus the aggregated experiment results:
 \textsc{matched} (within rounding), \textsc{near-miss} (close but drifted:
 the prime stale-claim suspects), and \textsc{orphan} (traceable to no data
@@ -246,6 +268,34 @@ baseline. With $n{=}10$ seeds the smallest achievable two-sided Wilcoxon $p$
 is $2/2^{10} \approx 0.002$; the tool documents this floor so users read
 $p=0.002$ as ``a clean sweep,'' not as arbitrary precision. Holm correction is
 available and its use (or absence) is disclosed in the output.
+
+Each pair also carries a 95\% confidence interval on the mean paired
+difference and Cohen's $d_z$, so ``significant'' can be qualified by ``how
+big.'' Most importantly, the tool enforces the asymmetry that informal
+practice erases: a failed difference test is \emph{not} evidence of
+equivalence. Claiming two configurations are ``equivalent,'' ``tied,'' or
+``statistically indistinguishable'' requires a TOST equivalence test
+(\texttt{--tost}, two one-sided paired $t$ against a pre-declared margin);
+a pair can be neither significantly different nor equivalent, and the honest
+verdict for that state is \textsc{inconclusive}.
+
+\subsection{Data provenance: the bug you haven't noticed yet}
+\label{sec:data}
+
+The most expensive research bugs are not crashes but datasets that silently
+stop meaning what the researcher thinks they mean---a categorical feature
+column that a merge-key type mismatch turned all-constant, a stale artifact
+averaged into a multi-seed mean. Nothing fails; the numbers are just quietly
+wrong. \textbf{data-audit} makes this class mechanical: \texttt{fingerprint}
+records, per data file, the shape, per-column null counts, distinct counts,
+ranges, and content hashes, and immediately screams on degeneracies
+(all-null, majority-null, or constant columns; byte-identical duplicate
+columns; NaN-bearing arrays)---a first fingerprint of already-broken data
+must shout, not just record. \texttt{verify} recomputes before every
+consuming run and classifies drift as hard (shape/column changes, new nulls,
+a column collapsing to constant: exit code 1, wired into any pre-run gate) or
+soft (values changed, schema and stats hold). The discipline is two-phase and
+cheap: fingerprint at build time, verify before spending GPU hours.
 
 \subsection{Autonomous experimentation: write, smoke-test, dispatch, verify}
 \label{sec:auto}
@@ -404,6 +454,32 @@ only: no metric is ever retyped by hand into prose, and if a number looks
 wrong the fix belongs in the code or the data, never in the text.
 claims-audit (Section~\ref{sec:audit}) exists precisely to catch the places
 where that rule was broken by hand before the pipeline enforced it.
+
+\subsection{Closing the submission loop: the gate, the freeze, the rebuttal}
+\label{sec:submission}
+
+Two skills cover the lifecycle stages after the manuscript is written.
+\textbf{submit-gate} runs the entire audit battery---bibliography, claims,
+citations, statistics, data verification---as one command against a
+per-project configuration, aggregating exit codes and output tails into a
+single readiness report with a \textsc{ready}/\textsc{not-ready} verdict; a
+failed required step is never argued down, only fixed or consciously waived
+in the committed configuration. Immediately after submitting, \texttt{freeze}
+snapshots (SHA-256) every file the submission's numbers rest on---tables,
+results artifacts, the PDF---so that a reviewer question months later is
+answered against \emph{what was submitted}, not against whatever the files
+have since become; \texttt{verify-freeze} makes any divergence explicit, to
+be disclosed in the response rather than silently papered over.
+
+When reviews arrive, \textbf{rebuttal} turns them into a tracked checklist:
+each comment gets a response with a declared action (\emph{change},
+\emph{clarify}, or \emph{decline}), and every \emph{change} records the files
+it claims to have modified and, optionally, a quote now present in the
+manuscript. \texttt{check} then verifies each claim against the actual
+revision diff---an anchor file absent from the diff, or a quote found
+nowhere, fails the letter before a reviewer can catch the mismatch. The
+classic rebuttal failure (``we have revised Section~3 accordingly,'' next to
+a diff that shows nothing) becomes mechanically impossible to ship unnoticed.
 
 \section{Case study: a real project as first install}
 \label{sec:case}

@@ -32,6 +32,16 @@ literature_dir: literature            # lit-review writes literature/<slug>/
 # --- lab-notebook (cross-session investigation tracking) ---
 notebook_dir: projects/my_paper/notebook   # one dir per investigation; a second investigation = a second dir (pass with --dir)
 
+# --- data-audit (dataset integrity) ---
+data_dirs:                            # dirs/files worth fingerprinting, one per bundle
+  - path/to/dataset_or_bundle
+
+# --- rebuttal (one dir per review round) ---
+rebuttal_dir: rebuttal/round1
+
+# --- submit-gate (the pre-submission battery) ---
+gate_config: gate.yaml                # composed once by the agent from this profile
+
 # --- interpreters (the scripts need different envs) ---
 python_scipy: <python with scipy>     # stat-check needs scipy (e.g. a smoke venv w/ scikit-learn)
 python_pypdf: "py -3.11"              # fulltext needs pypdf; kaggle/papermill also live here

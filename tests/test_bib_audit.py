@@ -1,4 +1,13 @@
 """Offline tests for bib_audit.py: parser, normalizers, and verdict logic (HTTP stubbed)."""
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_network_retraction(bib, monkeypatch):
+    # keep every test offline: the retraction lookup defaults to "couldn't check";
+    # retraction-specific tests override this with their own stub
+    monkeypatch.setattr(bib, "openalex_retracted", lambda d: None)
+
 
 SAMPLE = r"""
 % a comment line
@@ -92,3 +101,25 @@ def test_unpublished_submitted_is_unverifiable(bib, monkeypatch):
     r = bib.audit_entry(_entry({"title": "A Submitted Manuscript Nobody Indexed Yet",
                                 "journal": "IEEE Access (submitted)", "year": "2026"}))
     assert r["verdict"] == "UNVERIFIABLE"
+
+
+def test_retracted_work_flagged_first(bib, monkeypatch):
+    rec = {"src": "S2", "title": "A Retracted Paper", "year": 2020,
+           "doi": "10.1/r", "arxiv": None, "types": []}
+    monkeypatch.setattr(bib, "s2_by_doi", lambda d: rec)
+    monkeypatch.setattr(bib, "openalex_retracted", lambda d: True)
+    r = bib.audit_entry(_entry({"title": "A Retracted Paper", "year": "2020",
+                                "doi": "10.1/r"}))
+    assert r["verdict"] == "RETRACTED"
+    assert "RETRACTED" in r["notes"][0]
+    assert bib._ORDER.index("RETRACTED") == 0          # ranked most severe
+
+
+def test_unknown_retraction_status_is_note_not_verdict(bib, monkeypatch):
+    rec = {"src": "S2", "title": "A Real Paper", "year": 2020,
+           "doi": "10.1/x", "arxiv": None, "types": []}
+    monkeypatch.setattr(bib, "s2_by_doi", lambda d: rec)
+    monkeypatch.setattr(bib, "openalex_retracted", lambda d: None)
+    r = bib.audit_entry(_entry({"title": "A Real Paper", "year": "2020", "doi": "10.1/x"}))
+    assert r["verdict"] == "VERIFIED"
+    assert any("could not be checked" in n for n in r["notes"])

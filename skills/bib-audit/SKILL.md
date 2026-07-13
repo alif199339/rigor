@@ -1,6 +1,6 @@
 ---
 name: bib-audit
-description: Verify every entry in a BibTeX file against Semantic Scholar + Crossref before submission -- catch hallucinated, drifted, or mistyped citations (wrong year/title/venue, missing DOI, unresolvable works). Produces a report that proposes field-by-field fixes; never auto-edits the .bib. Use for `references.bib`/`.bib` audits, "check my citations", pre-submission bibliography QA.
+description: Verify every entry in a BibTeX file against Semantic Scholar + Crossref before submission -- catch hallucinated, drifted, or mistyped citations (wrong year/title/venue, missing DOI, unresolvable works) and RETRACTED works (Retraction Watch data via OpenAlex). Produces a report that proposes field-by-field fixes; never auto-edits the .bib. Use for `references.bib`/`.bib` audits, "check my citations", pre-submission bibliography QA.
 ---
 
 # /bib-audit — verify a bibliography against real records, propose fixes, never auto-edit
@@ -37,10 +37,11 @@ still works but throttles. Crossref is a separate polite pool keyed by `--mailto
 ~15-entry bib takes ~1 minute. Output: `bib_audit_report.md` — a summary table (ranked
 worst-first) + per-entry detail with diffs and suggested BibTeX lines.
 
-## The five verdicts (and how to act on each)
+## The six verdicts (and how to act on each)
 
 | Verdict | Meaning | Your action |
 |---|---|---|
+| **RETRACTED** | OpenAlex (Retraction Watch data) marks the work retracted. | **Most severe.** Remove the citation, or — if the retraction itself is the subject — cite it explicitly *as retracted*. Never leave it as ordinary support. |
 | **MISMATCH** | A record was found but a field conflicts (title drift, or a >2-yr year gap). | **Read the detail.** Often a *different edition/record* was title-matched (a reprint, a review) — the note says so. Verify identity; apply a fix only if it's genuinely the same work. |
 | **NOT-FOUND** | No confident match in S2 or Crossref. | The paper may be real but mistitled in the `.bib` (see the "closest guess"), or genuinely obscure. Verify it exists; fix the title so it resolves. |
 | **UNVERIFIABLE** | Unpublished/submitted or otherwise uncheckable. | Expected for companion/submitted papers. Re-audit after publication; leave as-is meanwhile. |
