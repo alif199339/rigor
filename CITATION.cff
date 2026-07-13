@@ -6,8 +6,10 @@ abstract: >-
   An integrity-first toolkit of agent skills for AI-assisted research: grounded
   literature discovery (zero hallucinated citations by construction), bibliography
   auditing against Semantic Scholar and Crossref, manuscript-vs-data claim
-  reconciliation, paired-by-seed significance testing, and unattended remote
-  experiment execution with scientific-integrity verification.
+  reconciliation, paired-by-seed significance testing, unattended remote
+  experiment execution with scientific-integrity verification, and an append-only
+  cross-session lab notebook with evidence-cited findings and citation-checked
+  narrative compilation.
 authors:
   - family-names: Mahmud
     given-names: Alif
@@ -17,7 +19,7 @@ authors:
       of Engineering and Technology (BUET), Dhaka, Bangladesh
 license: MIT
 repository-code: "https://github.com/alif199339/rigor"
-version: "1.5.1"
+version: "1.6"
 date-released: "2026-07-12"
 keywords:
   - research integrity

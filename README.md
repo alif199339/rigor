@@ -17,7 +17,7 @@ construction*, so the three classic failure modes of AI-assisted research can't 
 | **Stale/fabricated numbers** — the manuscript says 3.56 but the regenerated table says 3.48 | `claims-audit` reconciles every numeric claim in the prose against the machine-generated tables + raw results; `bib-audit` does the same for every bibliography entry. Both **report and propose — they never auto-edit**. |
 | **Seed-noise claims** — "model X beats Y" on a gap that's inside random variation | `stat-check` runs paired-by-seed Wilcoxon/t tests and reports exact p-values and n. A non-significant result is a result, never an omission. |
 
-## The eight skills
+## The nine skills
 
 | Skill | What it does |
 |---|---|
@@ -29,6 +29,7 @@ construction*, so the three classic failure modes of AI-assisted research can't 
 | [`run-remote`](skills/run-remote/SKILL.md) | Drives unattended notebook execution on Kaggle's free GPU (papermill parameter injection → push → poll → download → parse), with quota safety: GPU is never enabled without the owner's explicit yes. |
 | [`colab-run`](skills/colab-run/SKILL.md) | Google Colab as a **fallback** free-GPU backend, honestly: free Colab has no headless-execution API, so the agent injects parameters and stages the notebook into your Drive-synced folder, you tap "Run all" once (that tap **is** the GPU approval), and the agent polls the synced folder, validates `results.json`, and journals it. **Field-verified end-to-end.** For full automation (overnight fleets, zero taps), use `run-remote`/Kaggle — that's the recommended default. |
 | [`verify-run`](skills/verify-run/SKILL.md) | The integrity checklist every completed run passes before its numbers reach a human: config completeness, smoke-test flags, futility stops, NaNs, parameter-count fingerprints, seed-count disclosure. |
+| [`lab-notebook`](skills/lab-notebook/SKILL.md) | Append-only, cross-session lab notebook for investigations that outlive a single session and fan out into parallel tracks. Grounded `progress`/`finding`/`blocker`/`decision` entries per track (findings cite evidence artifacts; corrections are new entries, never edits), a session-start `status` digest, and a compiled `NOTEBOOK.md` that marks superseded entries. Sub-agent workflows re-verify findings against their evidence (`audit`) and write the investigation as one coherent story whose every claim cites entry ids — mechanically enforced by `check-narrative`. |
 
 The division of labor is deliberate: **scripts do the mechanical extraction; the agent
 does the semantic adjudication** (per each skill's `SKILL.md` rules); **the human approves

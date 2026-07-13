@@ -53,6 +53,11 @@ def colab():
 
 
 @pytest.fixture(scope="session")
+def labnb():
+    return load("lab-notebook", "notebook.py")
+
+
+@pytest.fixture(scope="session")
 def verify():
     return load("verify-run", "verify_run.py")
 

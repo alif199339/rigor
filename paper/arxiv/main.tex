@@ -26,7 +26,7 @@ workflow---literature survey, experiment execution, statistical analysis, and
 manuscript drafting---and they import three well-documented failure modes:
 hallucinated citations, numbers in prose that silently drift from the data
 behind them, and superiority claims that random seed variation does not
-support. We present RIGOR, an open-source toolkit of eight agent
+support. We present RIGOR, an open-source toolkit of nine agent
 \emph{skills} (instruction files paired with small, dependency-light Python
 programs) that makes agent-assisted research \emph{grounded by construction}
 rather than by exhortation. RIGOR enforces three architectural guarantees:
@@ -46,7 +46,10 @@ quotas---and passes every completed run through an integrity checklist
 before its numbers reach the researcher. The manuscript is treated the same
 way: \LaTeX{} compiled locally, diagrams written as TikZ code the agent
 renders and visually inspects itself, and every result table generated from
-raw run artifacts---numbers flow one way, from code to prose. We describe the
+raw run artifacts---numbers flow one way, from code to prose. Investigations
+that outlive a session are carried by an append-only lab notebook whose
+findings cite evidence artifacts and whose agent-written narrative is
+mechanically checked against the log. We describe the
 design, a
 two-layer portability model that separates generic mechanics from per-project
 configuration, and a working case study on a real multi-seed forecasting
@@ -318,6 +321,46 @@ honored (pipeline-check numbers are never reported as results); early-abort
 parameter counts matched exactly against anchors (an exact match fingerprints
 that the intended pipeline ran); and seed counts always disclosed, so a
 single-seed number is never presented as a robust average.
+
+\subsection{Continuity: the append-only lab notebook}
+\label{sec:notebook}
+
+Real investigations outlive any single agent session and fan out into parallel
+tracks---a parsing track, a data-quality track, a modelling track---whose state
+is exactly what conversation context loses: which track is blocked and why,
+which result was superseded, what the next concrete action was.
+\textbf{lab-notebook} makes a machine-readable notebook, not the conversation,
+the source of truth. Entries are typed (\texttt{progress}, \texttt{finding},
+\texttt{blocker}, \texttt{decision}, \texttt{correction}, \texttt{next}) and
+appended to a per-investigation JSONL log that is never edited: a wrong entry
+is superseded by a \texttt{correction} that points at it. A \texttt{finding} is
+expected to cite the artifact that shows it (a CSV, a figure, a log)---the
+script warns otherwise, and quoted numbers come from the artifact, not from
+memory. Each session starts from a compact digest (every track's status and
+last entry, open blockers with their reasons, queued next-steps with staleness
+flags) and ends by recompiling \texttt{NOTEBOOK.md}, where any entry a
+correction points at carries an explicit \emph{superseded-by} marker, so a
+corrected number cannot be quoted unaware.
+
+Two sub-agent workflows sit on top, and both keep the script as the truth
+layer. \emph{Audit} spawns a read-only sub-agent that re-opens every finding's
+evidence artifact and checks the quoted numbers against it---the script can
+verify that evidence \emph{exists}; only an agent can verify the artifact still
+\emph{shows the number}. Exercised live on a synthetic notebook, the auditing
+sub-agent confirmed the seeded finding against its artifact and, unprompted,
+flagged a numeric correction that carried no evidence of its own.
+\emph{Narrate} addresses the single-coherent-story problem: a sub-agent given
+\emph{only} the notebook writes the investigation as one narrative---the
+hypothesis, what each track tried, dead ends and why they were abandoned, the
+surviving evidence chain---in which every factual claim cites entry ids. The
+fresh context is the point: it cannot remember the sessions, so if the story
+cannot be written from the notebook alone, the notebook is incomplete, and the
+sub-agent's gap list says exactly what to log. The \texttt{check-narrative}
+subcommand then enforces the grounding mechanically: citations of nonexistent
+entries fail, citations of superseded entries warn, and findings the narrative
+never used are listed. One rule binds every sub-agent: entry identifiers are
+assigned read-then-append, so sub-agents report back and only the main session
+writes the log.
 
 \subsection{The manuscript layer: local \LaTeX{}, agent-drawn figures, one-way numbers}
 \label{sec:paper}

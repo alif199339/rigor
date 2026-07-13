@@ -3,7 +3,7 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.5.1** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.6** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -25,6 +25,7 @@ mechanics):
 | **run-remote** | Dispatch a notebook to Kaggle GPU via the runner (push→poll→download→parse). | Kaggle token, a sweep work dir |
 | **colab-run** | Semi-attended Colab fallback via a Drive-synced folder (inject→stage→one-tap run→poll→journal); the tap doubles as GPU approval. Field-verified. Kaggle is the recommended headless default. | Google Drive for Desktop |
 | **verify-run** | Scientific-integrity checklist on a completed run's results.json. | the profile's `reference_results` |
+| **lab-notebook** | Append-only cross-session investigation log: per-track grounded entries (findings cite evidence), session-start digest, compiled NOTEBOOK.md with superseded-entry markers; sub-agent `audit`/`narrate` workflows + `check-narrative` citation guardrail. | the profile's `notebook_dir` |
 
 Integrity is the through-line: a citation must exist in the API-returned `papers.json`
 before it may be used; audit skills *report and propose*, never auto-edit; stat-check
@@ -103,6 +104,20 @@ work dir and drops the template in on first use; the profile's `runner` key poin
 
 ## Changelog
 
+- **v1.6** — **New ninth skill: lab-notebook** (`skills/lab-notebook/`), an append-only
+  cross-session log for investigations that outlive a single session and fan out into
+  parallel tracks. Entries are typed (`progress`/`finding`/`blocker`/`decision`/
+  `correction`/`next`), findings are nudged to cite evidence artifacts, corrections are
+  new entries pointing at what they supersede (never edits), `status` prints a
+  session-start digest (open blockers, queued next-steps with stale detection), and
+  `compile` renders NOTEBOOK.md with **[superseded by #N]** markers so a corrected
+  number can't be quoted unaware. Two sub-agent workflows keep the script as the truth
+  layer: `audit` (a read-only sub-agent re-verifies every finding against its evidence
+  artifact — field-tested) and `narrate` (a fresh-context sub-agent writes the
+  investigation as one coherent story citing entry ids, mechanically enforced by the
+  `check-narrative` subcommand: unknown ids fail, superseded citations warn, uncited
+  findings are listed). Single-writer rule documented: sub-agents report, only the main
+  session logs. 14 offline tests — the suite is now **88 tests**.
 - **v1.5.1** — Two field-reported crash bugs in **lit-review**, both confirmed and fixed.
   (1) `snowball` crashed when Semantic Scholar answers `{"data": null}` — a literal null,
   not a missing key, so a `.get(k, [])` default never fires; the same latent pattern sat

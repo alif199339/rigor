@@ -30,7 +30,7 @@ Used naively, they import three well-documented failure modes:
 longer matches regenerated results tables), and **seed-noise claims** ("model X
 beats model Y" on a gap smaller than run-to-run variation).
 
-RIGOR is a toolkit of eight *skills* — each an instruction file paired with a
+RIGOR is a toolkit of nine *skills* — each an instruction file paired with a
 small, dependency-light Python program (the remote-execution skill drives a
 shared runner template) — that make an LLM agent's research assistance
 *grounded by construction* rather than by exhortation. Each skill combines
@@ -40,18 +40,16 @@ human approval gate for every proposed change:
 - **lit-review** builds literature collections exclusively from live Semantic
   Scholar API responses [@kinney2023semanticscholar]; a paper may be cited only
   if it exists in the resulting provenance-tagged store. It spans ranked and
-  exhaustive search, citation snowballing, recommendations, citation-context and
-  page-tagged full-text retrieval [@pypdf], and OpenAlex abstract enrichment
-  [@priem2022openalex] into a separately-attributed field. Its `report` command
-  re-ranks and tiers a collection (Core/Related/Peripheral) against the
-  researcher's own project description by a transparent, inspectable relevance
-  score.
+  exhaustive search, snowballing, recommendations, citation-context and
+  page-tagged full-text retrieval [@pypdf], and separately-attributed OpenAlex
+  abstract enrichment [@priem2022openalex]. Its `report` command tiers a
+  collection (Core/Related/Peripheral) against the researcher's own project
+  description by an inspectable relevance score.
 - **bib-audit** verifies every BibTeX entry against Semantic Scholar and
   Crossref [@hendricks2020crossref], classifying entries as verified,
   mismatched (with field-level diffs), not found, non-paper resources (checked
   by URL liveness), or unverifiable. It recognizes preprint-vs-publication
-  year offsets and does not auto-suggest fixes when a title-only match is likely
-  a different edition of the work.
+  year offsets and never auto-suggests fixes across likely different editions.
 - **claims-audit** extracts every numeric literal from a LaTeX manuscript's
   prose and captions and reconciles it against machine-generated tables and raw
   results files, flagging near-misses (stale drift), orphans (numbers with no
@@ -63,6 +61,11 @@ human approval gate for every proposed change:
   never an omission.
 - **topic-watch** re-runs a collection's own recorded queries and diffs for
   newly published papers.
+- **lab-notebook** keeps an append-only, cross-session log of long multi-track
+  investigations: findings cite the artifacts that show them, corrections
+  supersede rather than edit, and agent-written narrative compilations are
+  mechanically checked (`check-narrative`) so every claim cites a real,
+  un-superseded log entry.
 - **run-remote**, **colab-run**, and **verify-run** dispatch parameterized
   notebooks [@papermill] to free cloud GPUs (Kaggle headless, Colab
   semi-attended and field-verified) and pass every completed run through an
@@ -80,10 +83,9 @@ suite (all HTTP stubbed) runs in CI on Linux and Windows.
 Surveys of LLM-generated bibliographies find large fractions of fabricated or
 substantively erroneous citations [@walters2023fabrication]. Commercial
 AI-assisted discovery tools address parts of this problem but are typically
-closed, non-scriptable, and unauditable, and they do not extend to the other
-two integrity gaps that arise once agents run experiments and edit manuscripts:
-numbers drifting between regenerated results and prose, and statistically
-unsupported superiority claims.
+closed, non-scriptable, and unauditable, and do not cover the two further
+integrity gaps of agent-run experiments: numbers drifting between regenerated
+results and prose, and statistically unsupported superiority claims.
 
 Open, scriptable tools already exist for adjacent problems. Manubot assembles
 manuscripts from version-controlled sources and resolves citations by persistent
@@ -100,15 +102,15 @@ multi-seed studies on free cloud GPUs.
 RIGOR's contribution is architectural rather than algorithmic: citations must
 originate from a live bibliographic API response stored with provenance;
 manuscripts are diffed against their own ground-truth data; superiority claims
-are gated on paired tests of the actual per-seed results. The **division of
+are gated on paired tests. The **division of
 labor** is explicit: scripts perform mechanical extraction; the agent performs
 semantic adjudication under written rules; the human approves every edit. Audit
 tools *report and propose — they never modify* the bibliography or manuscript.
 
-A two-layer design makes the toolkit portable: skills and scripts contain no
-project paths, names, or reference numbers (Layer 1); a per-project profile
-carries manuscript paths, results globs, interpreters, and safety flags
-(Layer 2). Installation is a folder copy, and credentials never travel with it.
+A two-layer design makes the toolkit portable: skills and scripts carry no
+project paths or reference numbers; a per-project profile carries paths,
+globs, interpreters, and safety flags. Installation is a folder copy;
+credentials never travel with it.
 
 # Quality control and a working case study
 
@@ -123,7 +125,7 @@ where each tool produced verifiable findings:
 - *claims-audit* classified the manuscript's 271 numeric claims (151 matched,
   47 near-miss, 73 orphan) against its generated tables and raw results in 0.25
   seconds — mechanizing a manual audit that had found nine real text-vs-data
-  mismatches, and leaving the human only the semantic adjudication.
+  mismatches.
 - *stat-check*, over a 14-model, 10-seed study, showed the nominally best model
   was statistically indistinguishable from several siblings (Wilcoxon
   $p \approx 0.5$) while every family-versus-baseline claim survived
