@@ -129,7 +129,10 @@ work dir and drops the template in on first use; the profile's `runner` key poin
   (Retraction Watch data via OpenAlex `is_retracted`, most-severe rank);
   **claims-audit** now audits Markdown manuscripts too (frontmatter/code/
   citation-keys/URLs scrubbed — e.g. a JOSS paper.md). 31 new offline tests —
-  the suite is now **119 tests**. The whole build was dogfooded through
+  the suite is now **120 tests** (119 at the v1.7 push; +1 regression test from the
+  pre-submission diagnosis, which caught and fixed a v1.7 report bug: the stat-check
+  markdown table separator was one cell short of the widened header, breaking table
+  rendering on GitHub). The whole build was dogfooded through
   lab-notebook as a real 8-track investigation (including a live correction
   chain when a logged test count was wrong).
 - **v1.6** — **New ninth skill: lab-notebook** (`skills/lab-notebook/`), an append-only

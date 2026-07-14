@@ -16,7 +16,7 @@ authors:
 affiliations:
   - name: Department of Electrical and Electronic Engineering, Bangladesh University of Engineering and Technology (BUET), Dhaka, Bangladesh
     index: 1
-date: 12 July 2026
+date: 14 July 2026
 bibliography: paper.bib
 ---
 

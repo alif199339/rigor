@@ -255,7 +255,7 @@ def main():
          "",
          f"| Pair (A vs B) | n | mean A | mean B | median Δ(A−B) | mean Δ [95% CI] | dz "
          f"| Wilcoxon p | paired-t p |{tost_col} verdict |",
-         "|---|---|---|---|---|---|---|---|---|" + ("---|" if args.tost else "")]
+         "|---" * (11 if args.tost else 10) + "|"]
     for i, r in enumerate(results):
         if r["n"] < 3:
             skip = "-- | " * (7 + (1 if args.tost else 0))

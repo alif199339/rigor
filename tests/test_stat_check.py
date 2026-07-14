@@ -134,6 +134,21 @@ def test_ci95_and_effect_size(stat, tmp_path):
     assert r["dz"] < -5                                       # huge standardized effect
 
 
+def test_report_table_separator_matches_header(stat, tmp_path, monkeypatch, capsys):
+    # regression: v1.7 added CI+dz header columns but only widened the separator by
+    # one cell -- mismatched cell counts break markdown table rendering on GitHub
+    import sys
+    g = make_runs(tmp_path)
+    for tost in ([], ["--tost", "0.2"]):
+        monkeypatch.setattr(sys, "argv", ["stat_check.py", "--runs-glob", g,
+                                          "--study", "exp", "--pairs", "A:B", *tost])
+        stat.main()
+        lines = capsys.readouterr().out.splitlines()
+        header = next(l for l in lines if l.startswith("| Pair"))
+        sep = lines[lines.index(header) + 1]
+        assert header.count("|") == sep.count("|"), (header, sep)
+
+
 def test_holm_thresholds(stat):
     results = [{"w_p": 0.001}, {"w_p": 0.04}, {"w_p": 0.5}]
     d = stat.holm(results, alpha=0.05)
