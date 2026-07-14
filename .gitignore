@@ -1,3 +1,6 @@
+# private working context for Claude Code sessions -- never published
+CLAUDE.md
+
 __pycache__/
 *.pyc
 .traffic/
