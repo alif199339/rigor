@@ -21,6 +21,11 @@ authors:
       of Engineering and Technology (BUET), Dhaka, Bangladesh
 license: MIT
 repository-code: "https://github.com/alif199339/rigor"
+doi: 10.5281/zenodo.21362975
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21362976
+    description: "Version DOI for v1.7"
 version: "1.7"
 date-released: "2026-07-15"
 keywords:

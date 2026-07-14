@@ -2,6 +2,7 @@
 
 [![tests](https://github.com/alif199339/rigor/actions/workflows/ci.yml/badge.svg)](https://github.com/alif199339/rigor/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/1297151528.svg)](https://doi.org/10.5281/zenodo.21362975)
 
 **An integrity-first agent for the full research workflow — grounded literature,
 verified experiments, honest statistics, auditable manuscripts.** RIGOR turns an LLM
