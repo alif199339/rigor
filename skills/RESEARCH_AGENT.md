@@ -3,7 +3,7 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.7** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
+> **VERSION: 1.9** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
 > agent. Copy it into any project's `.claude/` directory and it works there — no edits to
 > that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
 > it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
@@ -22,12 +22,15 @@ mechanics):
 | **claims-audit** | Reconcile manuscript numbers vs table/results ground truth; flag stale-drift, orphans, stale figures. | results.json + generated tables |
 | **stat-check** | Paired-by-seed Wilcoxon/t for "X beats Y" claims from multi-seed runs; exact p-values, optional Holm. | scipy |
 | **topic-watch** | Re-run a collection's recorded queries, diff for new papers. Manual only. | `S2_API_KEY`; lit-review present |
+| **pi-scout** | Prospective-PI discovery from YOUR papers: harvest recent citing/related papers, batch-fetch author metrics, score PI-likelihood (warm leads = authors who cite you), shortlist; the agent then web-verifies position (Asst-Prof+), university QS/THE tier + country, and funding signals, and writes per-PI dossiers with an entry-odds audit. Commands: `seed`, `harvest`, `authors`, `shortlist`, `dossier`, `status`. | `S2_API_KEY`; lit-review present; web search for verification |
 | **run-remote** | Dispatch a notebook to Kaggle GPU via the runner (push→poll→download→parse). | Kaggle token, a sweep work dir |
 | **colab-run** | Semi-attended Colab fallback via a Drive-synced folder (inject→stage→one-tap run→poll→journal); the tap doubles as GPU approval. Field-verified. Kaggle is the recommended headless default. | Google Drive for Desktop |
 | **verify-run** | Scientific-integrity checklist on a completed run's results.json. | the profile's `reference_results` |
 | **lab-notebook** | Append-only cross-session investigation log: per-track grounded entries (findings cite evidence), session-start digest, compiled NOTEBOOK.md with superseded-entry markers; sub-agent `audit`/`narrate` workflows + `check-narrative` citation guardrail. | the profile's `notebook_dir` |
 | **cite-check** | Content-level citation verification: pairs every \cite-bearing claim sentence with the cited work's abstract (lit-review stores only) into a worksheet; agent judges SUPPORTED/NOT-SUPPORTED/CANT-VERIFY quoting the source. | a lit-review store |
 | **data-audit** | Dataset fingerprint + degeneracy (constant/all-null/dup columns, NaNs) + drift verify (exit 1) for the data experiments consume. | numpy for .npy stats |
+| **ref-audit** | Reviewer-side reference verification from submitted **PDFs** (single or conference batch/zip): extract + parse each reference list, verify via bib-audit's engine, flag HALLUCINATED / retracted / drifted citations; checkpointed batch + `panel_compile.py` → PANEL_TRIAGE.xlsx for the chair. | pypdf, `S2_API_KEY`, bib-audit alongside |
+| **result-audit** | Reviewer-side internal-consistency screening of submitted **PDFs**: abstract/conclusion numbers vs the paper's own body/tables, in-sentence % recomputation, impossible statistics (p>1, acc>100%, statcheck-style, GRIM), cross-section contradictions; fully offline, candidates for agent adjudication. | pypdf; scipy optional |
 | **rebuttal** | Reviewer comments → responses → `check` verifies every change-claim against the real revision diff; compiles RESPONSE.md. | a diff of the revision |
 | **submit-gate** | Runs the audit battery from gate.yaml → SUBMISSION_READINESS.md (READY/NOT-READY); `freeze`/`verify-freeze` sha256-snapshot the submitted artifacts. | pyyaml; a gate.yaml |
 
@@ -107,6 +110,52 @@ folder — it would look for its work files there. `run-remote`'s onboarding sca
 work dir and drops the template in on first use; the profile's `runner` key points at it.
 
 ## Changelog
+
+- **v1.9** — **Two new reviewer-side skills (16 total): ref-audit + result-audit**, the
+  first skills whose input is a submitted **PDF** rather than the author's sources —
+  built for editorial/program-committee screening (e.g. a conference's accepted-paper
+  batch delivered as a zip). **ref-audit** extracts and parses each
+  paper's reference list from the PDF text (IEEE numbered grammar first,
+  author-start fallback, sequential-marker acceptance so inline brackets can't
+  derail the split) and verifies every entry through bib-audit's engine (imported,
+  not forked) — S2 + Crossref + Retraction Watch — flagging hallucinated
+  (NOT-FOUND), retracted, and drifted citations; a printed DOI/arXiv ID that
+  resolves nowhere is called out as the hardest fabrication signal; per-entry JSON
+  checkpointing makes 50-paper batches interruptible. **result-audit** is the
+  fully-offline half: seven internal-consistency checks against the paper's own
+  text (headline-vs-body NEAR-MISS/ORPHAN, same-sentence % recomputation,
+  train/val/test splits, impossible statistics incl. statcheck-style t/F/χ²→p
+  recomputation when scipy is present, GRIM, abstract-vs-conclusion
+  contradictions). Both follow the cite-check division: scripts emit page-tagged,
+  quoted CANDIDATES; the agent adjudicates (CONFIRM/EXCLUDE for refs,
+  CONFIRMED-INCONSISTENT/EXPLAINED/EXTRACTION-NOISE for results) into per-paper
+  adjudication JSONs; `_shared/panel_compile.py` then merges everything into
+  **PANEL_TRIAGE.xlsx** (openpyxl, CSV fallback) — one row per exact finding
+  (`Ref [17]`, the two conflicting quotes) keyed by submission ID, plus per-paper
+  counts. Framing is factual-evidence-only by design: no AI-attribution scoring
+  anywhere; confidentiality rule documented (only cited-work title/DOI strings are
+  sent to APIs — the submission's own content never leaves the machine).
+  **Field test:** a real 314-paper conference screening batch (5,294 references
+  parsed; 297 result-audit candidates, every one adjudicated — 15 confirmed
+  inconsistencies across 9 papers, the rest explained or extraction noise), reported in
+  aggregate only. Also in this release: two **lit-review** `fulltext` crash fixes found
+  on a 250-PDF extraction run (`PdfReader` is lazy, so corrupt files raised at `.pages`
+  *outside* the error guard; broken-CMap PDFs yielding lone surrogates killed the write —
+  now `errors="replace"`), and **stat-check** reads the nested
+  `results[cfg]["metrics"]` schema some notebooks emit. 42 new offline tests (ref-audit,
+  result-audit, panel_compile, pi-scout, plus both fixes' regressions, verified to fail on
+  the pre-fix code) — the suite is now **162 tests**.
+
+- **v1.8** — **New skill: pi-scout (14 total)** (`skills/pi-scout/`) — prospective-PI
+  discovery for funded RA-ship/PhD outreach. Starts from the user's own papers
+  (S2-verified seeds), harvests recent citing/recommended/searched papers, batch-fetches
+  the author pool's metrics, and scores PI-likelihood with a transparent additive score
+  that ranks *warm leads* (authors who already cite the user) first. The script stops
+  where facts stop: current position, university tier (QS/THE + country), and funding
+  signals are an agent-owned web-verification stage with mandatory source-URL + date
+  provenance, feeding per-PI dossiers (trajectory, last-author share, group
+  collaborators, connection-to-your-work evidence) and an entry-odds audit. Reuses the
+  lit-review client like topic-watch, so it ships alongside it.
 
 - **v1.7** — **Four new skills (13 total) + three upgrades**, targeting the remaining
   universal researcher pain points. New: **cite-check** (content-level citation

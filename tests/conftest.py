@@ -83,6 +83,29 @@ def verify():
 
 
 @pytest.fixture(scope="session")
+def refa(bib):
+    # bib must be loaded first so ref_audit's `import bib_audit` reuses the same module
+    # object -- monkeypatching bib's HTTP entry points then covers ref-audit too
+    return load("ref-audit", "ref_audit.py")
+
+
+@pytest.fixture(scope="session")
+def resa():
+    return load("result-audit", "result_audit.py")
+
+
+@pytest.fixture(scope="session")
+def panel():
+    return load("_shared", "panel_compile.py")
+
+
+@pytest.fixture(scope="session")
+def piscout(lit):
+    # lit must be loaded first so pi_scout's `import lit_search` reuses it (as topic-watch)
+    return load("pi-scout", "pi_scout.py")
+
+
+@pytest.fixture(scope="session")
 def runner():
     # templates/runner.py lives outside skills/, so load it directly. papermill is
     # imported lazily inside prepare_run(), so this import needs only pyyaml.

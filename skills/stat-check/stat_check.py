@@ -89,6 +89,11 @@ def load_studies(runs_glob, study_map=None, metric_keys=("mape", "rmse", "mae"))
     for (study, seed), (_ts, d) in latest.items():
         bucket = studies.setdefault(study, {})
         for cfg, r in d.get("results", {}).items():
+            # Schema fallback: some notebooks nest the metrics one level down as
+            # results[cfg]["metrics"]["mape"] while keeping "params" at the top;
+            # older ones put mape/rmse/mae flat on results[cfg].
+            if "mape" not in r and isinstance(r.get("metrics"), dict):
+                r = {**r["metrics"], "params": r.get("params")}
             m = r.get("mape")
             if m is None or (isinstance(m, float) and m != m):  # None or NaN
                 continue

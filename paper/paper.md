@@ -16,7 +16,7 @@ authors:
 affiliations:
   - name: Department of Electrical and Electronic Engineering, Bangladesh University of Engineering and Technology (BUET), Dhaka, Bangladesh
     index: 1
-date: 14 July 2026
+date: 29 September 2026
 bibliography: paper.bib
 ---
 
@@ -30,7 +30,7 @@ Used naively, they import well-documented failure modes:
 longer matches regenerated results tables), and **seed-noise claims** ("model X
 beats model Y" on a gap smaller than run-to-run variation).
 
-RIGOR is a toolkit of thirteen *skills* — each an instruction file paired with
+RIGOR is a toolkit of sixteen *skills* — each an instruction file paired with
 a small, dependency-light Python program (the remote-execution skill drives a
 shared runner template) — that make an LLM agent's research assistance
 *grounded by construction* rather than by exhortation. Each skill combines
@@ -76,6 +76,14 @@ human approval gate for every proposed change:
 - **submit-gate** runs the audit battery as one pre-submission command with a
   READY/NOT-READY verdict, then freezes (sha256) the submitted artifacts so
   later reviewer questions are answered against what was actually submitted.
+- **ref-audit** and **result-audit** run the same checks *reviewer-side* on
+  submitted PDFs: references that resolve to no existing work, and numbers a
+  paper contradicts itself on (including statcheck-style *p* recomputation
+  [@nuijten2016statcheck] and the GRIM test [@brown2017grim]). Both emit quoted
+  candidates that must pass human adjudication before reaching a chair.
+- **pi-scout** grounds supervisor discovery the same way: candidates come only
+  from the API, starting from the researcher's own papers, and positions and
+  funding are web-verified with sources, never inferred.
 
 The scripts are standard-library-first Python (3.10+; scipy/pypdf where noted)
 and usable standalone. The skill layer targets agent harnesses that read skill
@@ -131,6 +139,10 @@ where each tool produced verifiable findings:
   was statistically indistinguishable from several siblings (Wilcoxon
   $p \approx 0.5$) while every family-versus-baseline claim survived
   ($p = 0.002$–$0.02$) — dissolving a single-seed "best model" headline.
+- *ref-audit* and *result-audit*, on a 314-paper conference screening batch:
+  adjudication confirmed 26 untraceable references and 15 internal
+  inconsistencies, and cleared most raw flags as legitimate — the reason
+  adjudication is mandatory.
 - The bibliography of this paper was itself verified by resolving every DOI
   through doi.org content negotiation before inclusion.
 

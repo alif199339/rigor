@@ -39,6 +39,22 @@ def test_supersede_newest_run_per_seed(stat, tmp_path):
     assert studies["exp"]["A"][0]["mape"] == 9.99          # newest wins
 
 
+def test_nested_metrics_schema_is_read(stat, tmp_path):
+    # some notebooks write results[cfg] = {"metrics": {...}, "params": n}
+    d = tmp_path / "runs" / "r0" / "output"
+    d.mkdir(parents=True)
+    (d / "results.json").write_text(json.dumps({
+        "notebook": "exp.ipynb", "span_start": None, "seed": 0,
+        "smoke_test": False, "timestamp_utc": "t",
+        "results": {"A": {"metrics": {"mape": 3.1, "rmse": 31.0, "mae": 25.0},
+                          "params": 1234},
+                    "B": {"mape": 3.4, "rmse": 34.0, "mae": 27.0, "params": 99}}}))
+    studies = stat.load_studies(str(tmp_path / "runs" / "*" / "output" / "results.json"))
+    assert studies["exp"]["A"][0]["mape"] == 3.1
+    assert studies["exp"]["A"][0]["params"] == 1234           # params kept from top level
+    assert studies["exp"]["B"][0]["mape"] == 3.4              # flat schema unchanged
+
+
 def test_nan_and_none_mape_dropped(stat, tmp_path):
     d = tmp_path / "runs" / "r0" / "output"
     d.mkdir(parents=True)

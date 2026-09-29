@@ -11,7 +11,11 @@ abstract: >-
   fingerprinting and drift detection, unattended remote experiment execution
   with scientific-integrity verification, an append-only cross-session lab
   notebook, diff-verified reviewer-response tracking, and a one-command
-  pre-submission gate with artifact freezing.
+  pre-submission gate with artifact freezing. Reviewer-side skills screen
+  submitted PDFs for non-existent or retracted references and for internal
+  numeric inconsistencies, feeding an adjudication-gated triage workbook; a
+  grounded prospective-supervisor discovery skill starts from the researcher's
+  own papers.
 authors:
   - family-names: Mahmud
     given-names: Alif
@@ -26,8 +30,8 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.21362976
     description: "Version DOI for v1.7"
-version: "1.7"
-date-released: "2026-07-15"
+version: "1.9"
+date-released: "2026-09-29"
 keywords:
   - research integrity
   - AI agents
@@ -35,6 +39,7 @@ keywords:
   - citation verification
   - reproducibility
   - statistical testing
+  - peer review
 references:
   - type: article
     title: "The Semantic Scholar Open Data Platform"

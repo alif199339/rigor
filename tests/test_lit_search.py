@@ -203,3 +203,43 @@ def test_search_merges_into_store(lit, tmp_path, monkeypatch):
     store = lit.load_store(out)
     assert set(store) == {"P1", "P2"}
     assert store["P1"]["_sources"] == ["search:anything"]
+
+
+def _fake_pypdf(monkeypatch):
+    """A stand-in pypdf whose reader is lazy like the real one: 'corrupt*' files
+    construct fine and only raise when .pages is touched; other files yield a
+    lone surrogate, as PDFs with broken CMaps do."""
+    import sys
+    import types
+
+    class Page:
+        def extract_text(self):
+            return "good text \ud800 after a lone surrogate"
+
+    class Reader:
+        def __init__(self, path):
+            self.path = path
+
+        @property
+        def pages(self):
+            if "corrupt" in self.path:
+                raise ValueError("EOF marker not found")
+            return [Page()]
+
+    monkeypatch.setitem(sys.modules, "pypdf", types.SimpleNamespace(PdfReader=Reader))
+
+
+def test_fulltext_survives_lazy_corrupt_pdf_and_surrogates(lit, tmp_path, monkeypatch):
+    # regression (two crashers found on a 250-PDF run): a corrupt PDF raised at
+    # .pages OUTSIDE the error guard, and a lone surrogate raised UnicodeEncodeError
+    # on write -- either one used to abort the whole extraction
+    import argparse
+    _fake_pypdf(monkeypatch)
+    out = tmp_path / "topic"
+    (out / "pdfs").mkdir(parents=True)
+    (out / "pdfs" / "a_corrupt.pdf").write_bytes(b"not a pdf")
+    (out / "pdfs" / "b_good.pdf").write_bytes(b"%PDF-stub")
+    lit.cmd_fulltext(argparse.Namespace(out=str(out), top=10, all=True, force=False))
+    assert not (out / "fulltext" / "a_corrupt.txt").exists()     # skipped, not fatal
+    txt = (out / "fulltext" / "b_good.txt").read_text(encoding="utf-8")
+    assert "===== PDF PAGE 1 =====" in txt and "good text ? after" in txt

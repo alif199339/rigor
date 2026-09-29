@@ -753,19 +753,22 @@ def cmd_fulltext(args):
             print(f"  [skip] {stem}.txt exists (use --force to re-extract)")
             done += 1
             continue
-        try:
-            reader = PdfReader(pdf)
-        except Exception as e:
-            print(f"  [error] {stem}: {e}")
-            continue
         out = []
         if p:  # provenance header ties the text back to the verified record
             out.append(f"# {p.get('title')} ({p.get('year')})  DOI={_doi(p) or '-'}  "
                        f"paperId={p.get('paperId')}\n")
-        for i, page in enumerate(reader.pages, 1):
-            out.append(f"\n===== PDF PAGE {i} =====\n{page.extract_text() or ''}")
+        try:
+            # PdfReader is lazy -- corrupt files raise on .pages, so keep the
+            # whole read+iterate inside the guard
+            reader = PdfReader(pdf)
+            for i, page in enumerate(reader.pages, 1):
+                out.append(f"\n===== PDF PAGE {i} =====\n{page.extract_text() or ''}")
+        except Exception as e:
+            print(f"  [error] {stem}: {e}")
+            continue
         text = "".join(out)
-        with open(dest, "w", encoding="utf-8") as f:
+        # some PDFs yield lone surrogates from broken CMaps; never let one kill the run
+        with open(dest, "w", encoding="utf-8", errors="replace") as f:
             f.write(text)
         done += 1
         print(f"  [fulltext {done}] {stem}.txt  ({len(reader.pages)} pages, {len(text):,} chars)")

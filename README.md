@@ -18,7 +18,12 @@ construction*, so the three classic failure modes of AI-assisted research can't 
 | **Stale/fabricated numbers** — the manuscript says 3.56 but the regenerated table says 3.48 | `claims-audit` reconciles every numeric claim in the prose against the machine-generated tables + raw results; `bib-audit` does the same for every bibliography entry. Both **report and propose — they never auto-edit**. |
 | **Seed-noise claims** — "model X beats Y" on a gap that's inside random variation | `stat-check` runs paired-by-seed Wilcoxon/t tests and reports exact p-values and n. A non-significant result is a result, never an omission. |
 
-## The thirteen skills
+The same guardrails also run **reviewer-side**: `ref-audit` and `result-audit` take a
+submitted paper's PDF (or a whole conference batch) and flag references that resolve to
+no existing work and numbers the paper contradicts itself on — as quoted, page-tagged
+candidates for a human adjudication pass, never as verdicts on the authors.
+
+## The sixteen skills
 
 | Skill | What it does |
 |---|---|
@@ -27,12 +32,15 @@ construction*, so the three classic failure modes of AI-assisted research can't 
 | [`claims-audit`](skills/claims-audit/SKILL.md) | Extracts every numeric literal from a LaTeX manuscript's prose/captions and classifies it against ground truth (generated tables + results JSON): MATCHED / NEAR-MISS (stale drift) / ORPHAN. Also flags results-derived figures older than the newest results file. |
 | [`stat-check`](skills/stat-check/SKILL.md) | Paired-by-seed Wilcoxon signed-rank + paired t across multi-seed runs, with optional Holm correction. Groups runs exactly like your aggregator (newest run per seed supersedes; smoke runs excluded). |
 | [`topic-watch`](skills/topic-watch/SKILL.md) | Re-runs a collection's own recorded queries and diffs for papers published since — keeps a survey current before a revision. Manual by design. |
+| [`pi-scout`](skills/pi-scout/SKILL.md) | Prospective-supervisor discovery that starts from **your own papers**: harvests recent papers that cite or relate to them, batch-fetches the author pool's metrics, and ranks PI-likely authors with a transparent additive score (warm leads — people who already cite you — first). Position, university tier, and funding are then **web-verified by the agent with source URLs + dates**, never inferred; per-PI dossiers end in a labelled-as-judgment fit/odds audit. It never contacts anyone. |
 | [`run-remote`](skills/run-remote/SKILL.md) | Drives unattended notebook execution on Kaggle's free GPU (papermill parameter injection → push → poll → download → parse), with quota safety: GPU is never enabled without the owner's explicit yes. |
 | [`colab-run`](skills/colab-run/SKILL.md) | Google Colab as a **fallback** free-GPU backend, honestly: free Colab has no headless-execution API, so the agent injects parameters and stages the notebook into your Drive-synced folder, you tap "Run all" once (that tap **is** the GPU approval), and the agent polls the synced folder, validates `results.json`, and journals it. **Field-verified end-to-end.** For full automation (overnight fleets, zero taps), use `run-remote`/Kaggle — that's the recommended default. |
 | [`verify-run`](skills/verify-run/SKILL.md) | The integrity checklist every completed run passes before its numbers reach a human: config completeness, smoke-test flags, futility stops, NaNs, parameter-count fingerprints, seed-count disclosure. |
 | [`lab-notebook`](skills/lab-notebook/SKILL.md) | Append-only, cross-session lab notebook for investigations that outlive a single session and fan out into parallel tracks. Grounded `progress`/`finding`/`blocker`/`decision` entries per track (findings cite evidence artifacts; corrections are new entries, never edits), a session-start `status` digest, and a compiled `NOTEBOOK.md` that marks superseded entries. Sub-agent workflows re-verify findings against their evidence (`audit`) and write the investigation as one coherent story whose every claim cites entry ids — mechanically enforced by `check-narrative`. |
 | [`cite-check`](skills/cite-check/SKILL.md) | **Content-level** citation verification — does each cited paper actually *say* what the citing sentence claims? Pairs every `\cite`-bearing claim with the cited work's abstract (from lit-review stores, so provenance holds) into a worksheet; the agent judges SUPPORTED / NOT-SUPPORTED / CANT-VERIFY, quoting the source verbatim. Catches miscitations that every existence check misses. |
 | [`data-audit`](skills/data-audit/SKILL.md) | Dataset fingerprinting + degeneracy detection + drift verification for the files experiments consume: all-constant or all-null columns (the silent merge-bug class), creeping nulls/NaNs, shape or column changes between rebuilds. `fingerprint` records what the data is; `verify` proves it still is — exit 1 on hard drift, before GPU hours are spent on it. |
+| [`ref-audit`](skills/ref-audit/SKILL.md) | **Reviewer-side** reference verification from submitted PDFs (one paper or a conference batch): extracts and parses each reference list, verifies every entry through `bib-audit`'s engine (S2 + Crossref + Retraction Watch), and flags NOT-FOUND (hallucination candidates — a printed DOI/arXiv ID that resolves nowhere is called out), RETRACTED, and drifted citations. Checkpointed per entry, so 50-paper batches resume where they stopped. Only the *cited* works' metadata is sent to the APIs — the submission itself never leaves the machine. |
+| [`result-audit`](skills/result-audit/SKILL.md) | **Reviewer-side**, fully offline: does the paper agree with *itself*? Seven checks on the PDF text — abstract/conclusion numbers vs the paper's own body and tables (NEAR-MISS / ORPHAN), same-sentence "improves by N%" recomputation, train/val/test splits, impossible statistics (p > 1, accuracy > 100 %, statcheck-style t/F/χ² → p recomputation), GRIM, and abstract-vs-conclusion contradictions. A shared `panel_compile.py` merges both audits and the agent's adjudications into one `PANEL_TRIAGE.xlsx` for the chair — only adjudication-confirmed items become findings. |
 | [`rebuttal`](skills/rebuttal/SKILL.md) | Reviewer-response tracking with **mechanically verified change-claims**: imports reviews into a checklist, records each response with the files it claims changed, and `check` verifies every "we have revised…" against the actual revision diff (anchors + quotes). Compiles the response letter. |
 | [`submit-gate`](skills/submit-gate/SKILL.md) | One command before submission: runs the whole audit battery into a single `SUBMISSION_READINESS.md` with a READY/NOT-READY verdict; `freeze` then snapshots (sha256) every file the submission's numbers rest on, so reviewer questions months later are answered against **what was submitted**, via `verify-freeze`. |
 
@@ -65,7 +73,8 @@ config (`skills/_shared/project_profile.yaml`). See
 
 ```powershell
 setx S2_API_KEY "<key>"                    # free: semanticscholar.org/product/api (1 req/s)
-python -m pip install pypdf scipy          # fulltext / stat-check
+python -m pip install pypdf scipy          # fulltext, ref-/result-audit / stat-check
+python -m pip install openpyxl             # optional: panel_compile writes .xlsx (CSV otherwise)
 python -m pip install kaggle papermill pyyaml   # only if you use run-remote
 ```
 
@@ -112,6 +121,11 @@ python skills/stat-check/stat_check.py --runs-glob "..." --study mystudy --pairs
 # integrity-check a completed run before trusting its numbers (exits non-zero on any hard finding)
 python skills/verify-run/verify_run.py --runs-glob "sweeps/runs/*/output/results.json" \
        --expect modelA,baseline --anchors modelA=45393
+
+# reviewer-side: screen a folder of submitted PDFs, adjudicate, then build the chair's workbook
+python skills/ref-audit/ref_audit.py --dir papers/ --mailto you@example.com   # checkpointed
+python skills/result-audit/result_audit.py --dir papers/                      # offline, seconds
+python skills/_shared/panel_compile.py --dir papers/                          # -> PANEL_TRIAGE.xlsx
 ```
 
 Every command's options and integrity rules are documented in its skill's `SKILL.md`.
@@ -141,7 +155,7 @@ studies are auto-named from the notebook + span.
 ## Tests
 
 ```bash
-python -m pip install pytest scipy pypdf pyyaml
+python -m pip install pytest scipy pypdf pyyaml openpyxl
 pytest -q
 ```
 
