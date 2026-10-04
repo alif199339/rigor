@@ -50,7 +50,26 @@ every edit**. Nothing in RIGOR rewrites your manuscript, bibliography, or result
 
 ## Install
 
-RIGOR is a copy-paste folder — no package manager, no build step.
+Two routes. Both give you the same sixteen skills; neither needs a package manager or a
+build step.
+
+### As a Claude Code plugin (recommended)
+
+In a Claude Code session, in any project:
+
+```
+/plugin marketplace add alif199339/rigor
+/plugin install rigor@rigor
+```
+
+The skills arrive namespaced — `/rigor:lit-review`, `/rigor:bib-audit`, and so on — and
+`/plugin` updates them from the marketplace when a new version lands. Nothing is copied
+into your repository.
+
+### As a copy-paste folder
+
+Still fully supported, and the right choice if you want the skills committed in the project
+or edited in place:
 
 ```bash
 git clone https://github.com/alif199339/rigor
@@ -60,9 +79,15 @@ cp -r rigor/skills <your-project>/.claude/skills   # merge if .claude/skills exi
 (or download the archive attached to the
 [latest release](https://github.com/alif199339/rigor/releases/latest))
 
-Then open a fresh Claude Code session in your project and say:
+Here the skills are plain `/lit-review`, `/bib-audit`, and so on. Every `SKILL.md` detects
+which install it is running under and resolves its own script path accordingly, so the two
+routes need no different instructions.
 
-> Read `.claude/skills/RESEARCH_AGENT.md` and onboard this project.
+### Then onboard the project
+
+Open a fresh Claude Code session in your project and say:
+
+> Read RIGOR's `RESEARCH_AGENT.md` and onboard this project.
 
 The agent scans your repo, asks only what it can't infer, and writes the per-project
 config (`skills/_shared/project_profile.yaml`). See

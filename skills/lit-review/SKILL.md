@@ -5,9 +5,17 @@ description: Build a grounded literature review from the Semantic Scholar API (2
 
 # /lit-review — grounded literature discovery, zero hallucinated citations
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 Turns a plain-English research question ("what's been done on X?") **or** an existing
 manuscript into a verified paper collection + synthesized review. The tool is
-`.claude/skills/lit-review/lit_search.py` (stdlib-only, any Python 3.10+; use the
+`$RIGOR/skills/lit-review/lit_search.py` (stdlib-only, any Python 3.10+; use the
 project's smoke venv or `py -3.11`). All API calls hit the live Semantic Scholar
 Academic Graph, so every title/DOI/URL/PDF in the output exists by construction.
 
@@ -45,7 +53,7 @@ step).
 
 ```powershell
 $env:PYTHONUTF8="1"
-$T = ".claude/skills/lit-review/lit_search.py"
+$T = "$RIGOR/skills/lit-review/lit_search.py"
 $OUT = "literature/<slug>"
 
 # 1. breadth: one search per derived query (25 each is plenty; --year-from optional)

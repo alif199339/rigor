@@ -5,6 +5,10 @@ description: Cross-verify a completed remote/notebook run's results.json (or not
 
 # /verify-run — scientific-integrity check on a completed run
 
+<!-- rigor:paths -->
+> **Names in this file.** Skill names are written `/name`; a plugin install namespaces them
+> as `/rigor:name`.
+
 The last gate before any number reaches the user. Adapted for the `results.json`-based
 record that Kaggle runs produce (Kaggle never returns an executed notebook — `results.json`
 + `experiments.md` are the primary record).

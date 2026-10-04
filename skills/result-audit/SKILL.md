@@ -5,6 +5,14 @@ description: Reviewer-side internal-consistency screening of submitted PDF paper
 
 # /result-audit — does the paper agree with ITSELF?
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 `/claims-audit` reconciles an author's manuscript against their `results.json`.
 A reviewer has no ground truth — only the PDF — so this skill checks the one
 thing that needs no external data: **internal consistency**. An abstract that
@@ -22,8 +30,8 @@ nothing about the submission leaves the machine.
 
 ```powershell
 $env:PYTHONUTF8="1"
-python skills\result-audit\result_audit.py --dir papers\        # batch
-python skills\result-audit\result_audit.py --pdf papers\<submission-id>.pdf
+python $RIGOR\skills\result-audit\result_audit.py --dir papers\        # batch
+python $RIGOR\skills\result-audit\result_audit.py --pdf papers\<submission-id>.pdf
 ```
 
 Per paper: `<stem>_result_audit.md` (worksheet) + `.json`; `--dir` adds
@@ -70,7 +78,7 @@ above); sub-agents report back, the **main session** writes the adjudication
 files — single-writer, as in `/cite-check`.
 
 Then compile the chair workbook:
-`python skills\_shared\panel_compile.py --dir papers\ [--id-map ids.csv]` →
+`python $RIGOR\skills\_shared\panel_compile.py --dir papers\ [--id-map ids.csv]` →
 `PANEL_TRIAGE.xlsx`. Only CONFIRMED-INCONSISTENT items appear on the Findings
 sheet (as DATA-INCONSISTENCY, with your quotes); everything else stays in the
 per-paper worksheets.

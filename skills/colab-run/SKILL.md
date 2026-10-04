@@ -5,6 +5,14 @@ description: Semi-attended notebook execution on Google Colab through a Drive-sy
 
 # /colab-run — Colab as a second free-GPU backend, honestly
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 Kaggle has an official headless-execution API; **free Colab does not**, and this skill
 deliberately does not automate around that (no browser automation — it's against
 Google's ToS and brittle). Instead, everything *around* the one human tap is automated,
@@ -27,7 +35,7 @@ fallback: one tap **per run** means a ten-run sweep costs ten taps. Reach for it
 the week's Kaggle quota is exhausted, when a Colab-specific runtime is wanted, or when
 the per-run human checkpoint is itself desirable.
 
-The script is `.claude/skills/colab-run/colab_run.py` (stdlib-only — it implements the
+The script is `$RIGOR/skills/colab-run/colab_run.py` (stdlib-only — it implements the
 papermill `injected-parameters` convention itself, no papermill needed).
 
 ## One-time machine setup
@@ -63,7 +71,7 @@ except ImportError:
 
 ```powershell
 $env:PYTHONUTF8="1"
-$C = ".claude/skills/colab-run/colab_run.py"
+$C = "$RIGOR/skills/colab-run/colab_run.py"
 
 # 1. agent stages the run (repeat --param per knob; values are JSON-ish literals)
 python $C dispatch --notebook "notebooks/my_experiment.ipynb" `

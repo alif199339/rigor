@@ -5,13 +5,21 @@ description: Find prospective PIs / supervisors for a funded RA-ship or PhD, sta
 
 # /pi-scout — from your papers to a verified, audited list of prospective PIs
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 The insight this skill operationalizes: **the best prospective PI already knows your
 work** — they cited it, or they publish in the exact space your papers define. So the
 pipeline starts from *your* papers, not from a generic topic search, and ranks warm
 leads (authors who cite you) above everyone else.
 
-The tool is `.claude/skills/pi-scout/pi_scout.py` (stdlib-only; imports the lit-review
-client for API/rate-limit machinery, so `.claude/skills/lit-review/` must be present).
+The tool is `$RIGOR/skills/pi-scout/pi_scout.py` (stdlib-only; imports the lit-review
+client for API/rate-limit machinery, so `$RIGOR/skills/lit-review/` must be present).
 The script does the S2 data plumbing; **you (the agent) own the judgment stages**:
 web verification, tier assignment, fit matching, and the final audit.
 
@@ -66,7 +74,7 @@ respect the 1 req/s key limit (sleep 1.2s built in).
 
 ```powershell
 $env:PYTHONUTF8="1"
-$T = ".claude/skills/pi-scout/pi_scout.py"
+$T = "$RIGOR/skills/pi-scout/pi_scout.py"
 
 # 1. seed: register the user's OWN papers (journal + conference), verified via S2.
 #    Prefer DOIs; --title uses the match endpoint. Confirm each hit IS their paper.

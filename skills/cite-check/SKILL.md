@@ -5,6 +5,14 @@ description: Content-level citation verification -- does each cited paper actual
 
 # /cite-check — catch miscitations, not just fake citations
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 `bib-audit` proves a cited work **exists**; this skill checks that it **supports the
 sentence citing it**. Miscitation — a real paper cited for a claim it doesn't make —
 is the most common citation failure in real manuscripts and survives every
@@ -21,7 +29,7 @@ Two halves, strictly divided:
 
 ```powershell
 $env:PYTHONUTF8="1"
-python .claude/skills/cite-check/cite_check.py `
+python $RIGOR/skills/cite-check/cite_check.py `
     --tex path\to\main.tex --bib path\to\references.bib `
     --papers "literature/*/papers.json" --out-dir path\to\
 ```

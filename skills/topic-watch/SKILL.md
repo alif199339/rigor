@@ -5,18 +5,26 @@ description: Re-run a lit-review collection's own recorded queries and diff for 
 
 # /topic-watch — has anything new been published since the survey?
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 A literature collection goes stale the moment it's built. This re-runs the **collection's
 own queries** (recovered from the `_sources` provenance tags the lit-review skill wrote)
 against Semantic Scholar, biased toward recent years, and reports the papers that weren't
 in the store — so you can refresh a survey before a revision without re-deriving queries.
 
-The script is `.claude/skills/topic-watch/topic_watch.py`. It **imports** the lit-review
+The script is `$RIGOR/skills/topic-watch/topic_watch.py`. It **imports** the lit-review
 client (`../lit-review/lit_search.py`) for its API/rate-limit/store machinery, so the two
 skills ship together.
 
 ```powershell
 $env:PYTHONUTF8="1"
-python .claude\skills\topic-watch\topic_watch.py --out literature\<slug>
+python $RIGOR\skills\topic-watch\topic_watch.py --out literature\<slug>
 #   --since-year 2025   only surface papers from this year on (default: last year)
 #   --limit 30          results scanned per query
 #   --merge             also add the new papers to papers.json (default: report only)

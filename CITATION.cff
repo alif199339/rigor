@@ -30,8 +30,8 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.21362976
     description: "Version DOI for v1.7"
-version: "1.9"
-date-released: "2026-09-29"
+version: "1.10"
+date-released: "2026-10-04"
 keywords:
   - research integrity
   - AI agents

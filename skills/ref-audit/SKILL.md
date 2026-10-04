@@ -5,6 +5,14 @@ description: Reviewer-side reference verification for submitted PDF papers (sing
 
 # /ref-audit — do the cited works exist? (PDF-in, reviewer-side)
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 `/bib-audit` protects an **author's** `.bib`. This skill is its **reviewer-side**
 twin: the input is a submitted paper's PDF (or a folder/zip of them), the reference
 list is extracted and parsed from the PDF text, and every entry runs through the
@@ -22,9 +30,9 @@ The script is `ref_audit.py` (pypdf + the bib-audit folder beside this one;
 $env:PYTHONUTF8="1"
 # a conference zip: unzip first, then batch (checkpointed -- safe to interrupt/resume)
 Expand-Archive submissions.zip -DestinationPath papers\
-python skills\ref-audit\ref_audit.py --dir papers\ --mailto <RIGOR_MAILTO>
+python $RIGOR\skills\ref-audit\ref_audit.py --dir papers\ --mailto <RIGOR_MAILTO>
 # or a single paper:
-python skills\ref-audit\ref_audit.py --pdf papers\<submission-id>.pdf --mailto <email>
+python $RIGOR\skills\ref-audit\ref_audit.py --pdf papers\<submission-id>.pdf --mailto <email>
 ```
 
 Per paper: `<stem>_ref_audit.md` (ranked report) + `<stem>_ref_audit.json`
@@ -63,7 +71,7 @@ venues, brand-new preprints, standards, and theses are legitimate misses. For
 ```
 
 Then compile the chair workbook:
-`python skills\_shared\panel_compile.py --dir papers\ [--id-map ids.csv]` →
+`python $RIGOR\skills\_shared\panel_compile.py --dir papers\ [--id-map ids.csv]` →
 `PANEL_TRIAGE.xlsx` (Findings sheet: one row per exact finding, `Ref [n]` named;
 Summary sheet: per-paper counts). Only CONFIRMed NOT-FOUNDs are labeled
 HALLUCINATED-REF; unadjudicated ones are marked as such.

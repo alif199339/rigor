@@ -1,0 +1,24 @@
+{
+  "name": "rigor",
+  "owner": {
+    "name": "Alif Mahmud",
+    "url": "https://github.com/alif199339"
+  },
+  "description": "RIGOR: integrity-first research skills -- grounded literature, verified experiments, honest statistics, auditable manuscripts, and reviewer-side screening.",
+  "plugins": [
+    {
+      "name": "rigor",
+      "source": ".",
+      "description": "Sixteen research-integrity skills: lit-review, bib-audit, cite-check, claims-audit, stat-check, data-audit, topic-watch, pi-scout, run-remote, colab-run, verify-run, lab-notebook, ref-audit, result-audit, rebuttal, submit-gate.",
+      "category": "research",
+      "tags": [
+        "research-integrity",
+        "literature-review",
+        "citation-verification",
+        "reproducibility",
+        "statistics",
+        "peer-review"
+      ]
+    }
+  ]
+}

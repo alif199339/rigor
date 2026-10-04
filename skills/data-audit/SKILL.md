@@ -5,6 +5,14 @@ description: Dataset fingerprinting, degeneracy detection, and drift verificatio
 
 # /data-audit — the data bug you haven't noticed yet
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 The most expensive research bugs are not crashes; they are datasets that silently
 stop meaning what you think they mean. A holiday-category column that a dict-key
 type mismatch turned all-zero. A stale single-run file averaged into a ten-seed
@@ -18,7 +26,7 @@ modifies data.
 
 ```powershell
 $env:PYTHONUTF8="1"
-$D = "skills/data-audit/data_audit.py"
+$D = "$RIGOR/skills/data-audit/data_audit.py"
 
 # 1. When a dataset/bundle is built (or first adopted): record what it IS
 python $D fingerprint path\to\bundle\ --strict          # exit 2 if born broken

@@ -5,6 +5,10 @@ description: Execute a research notebook unattended on Kaggle's free GPU via the
 
 # /run-remote — dispatch a notebook to Kaggle and report back
 
+<!-- rigor:paths -->
+> **Names in this file.** Skill names are written `/name`; a plugin install namespaces them
+> as `/rigor:name`.
+
 Drives the project's `runner.py` end to end for one sweep entry, then hands off to
 `/verify-run` for the integrity check.
 

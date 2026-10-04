@@ -5,17 +5,25 @@ description: Paired-by-seed significance testing for "model X beats model Y" cla
 
 # /stat-check — is that "X beats Y" gap real, or seed noise?
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 The manuscript makes many "compact beats heavy" / "config A beats config B" claims. At
 n≈10 seeds, a 0.03 pp MAPE gap is noise and a 0.7 pp gap is decisive — but the mean±std
 in a table doesn't tell you *which*. This skill runs the proper **paired-by-seed** test
 so each claim is backed by an exact p-value.
 
-The script is `.claude/skills/stat-check/stat_check.py`. It needs **scipy** (any Python
+The script is `$RIGOR/skills/stat-check/stat_check.py`. It needs **scipy** (any Python
 env that has it; the profile's `python_scipy`):
 
 ```powershell
 $P = "<python-with-scipy>"                              # the profile's python_scipy
-$S = ".claude\skills\stat-check\stat_check.py"
+$S = "$RIGOR\skills\stat-check\stat_check.py"
 $G = "<sweep_dir>\runs\*\output\results.json"           # the profile's results_glob
 & $P $S --runs-glob $G --list                            # studies + configs + seeds
 & $P $S --runs-glob $G --study <study>                   # default battery (see below)

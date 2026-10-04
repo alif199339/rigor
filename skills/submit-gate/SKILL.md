@@ -5,6 +5,14 @@ description: The pre-submission gate -- one command runs the whole audit battery
 
 # /submit-gate — one verdict before you submit, one snapshot after
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 Before every submission the same battery gets run by hand: bibliography audit,
 claims audit, citation check, statistics check, data verification, figure
 staleness. This skill turns that into **one command with one verdict** — and
@@ -40,11 +48,16 @@ steps:
     required: false        # only if the project keeps fingerprints
 ```
 
+> ⚠️ **These paths are literal, not variables.** `gate.yaml` is read by `submit_gate.py` and
+> its `cmd` arrays are executed directly, so neither `$RIGOR` nor `${CLAUDE_PLUGIN_ROOT}` is
+> expanded here. Write the paths out: `.claude/skills/...` for a copy-paste install, or the
+> absolute path `${CLAUDE_PLUGIN_ROOT}` resolved to above for a plugin install.
+
 ## 2. Gate, then freeze
 
 ```powershell
 $env:PYTHONUTF8="1"
-$G = "skills/submit-gate/submit_gate.py"
+$G = "$RIGOR/skills/submit-gate/submit_gate.py"
 
 python $G check --config gate.yaml            # -> SUBMISSION_READINESS.md, exit 1 = NOT ready
 # ... submit ...

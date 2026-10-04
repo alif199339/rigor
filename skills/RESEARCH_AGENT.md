@@ -3,10 +3,14 @@
 > *An integrity-first agent for the full research workflow — grounded literature,
 > verified experiments, honest statistics, auditable manuscripts.*
 >
-> **VERSION: 1.9** · This folder (`skills/`, installed as `.claude/skills/`) is the whole
-> agent. Copy it into any project's `.claude/` directory and it works there — no edits to
-> that project's `CLAUDE.md`, and no secrets travel with it. This file is the manifest;
-> it is **not** a skill (no `SKILL.md`), so Claude Code's skill discovery ignores it.
+> **VERSION: 1.10** · This folder (`skills/`) is the whole agent, and it installs two ways:
+> as a **Claude Code plugin** (`/plugin marketplace add alif199339/rigor`, then
+> `/plugin install rigor@rigor` — skills arrive namespaced as `/rigor:<name>`), or by
+> **copying it into any project's `.claude/` directory** as `.claude/skills/` (skills are
+> then plain `/<name>`). Either way: no edits to that project's `CLAUDE.md`, and no secrets
+> travel with it. Each `SKILL.md` resolves its own script path for both installs — see the
+> `<!-- rigor:paths -->` note it carries. This file is the manifest; it is **not** a skill
+> (no `SKILL.md`), so Claude Code's skill discovery ignores it.
 
 ## What RIGOR is
 
@@ -110,6 +114,29 @@ folder — it would look for its work files there. `run-remote`'s onboarding sca
 work dir and drops the template in on first use; the profile's `runner` key points at it.
 
 ## Changelog
+
+- **v1.10** — **RIGOR installs as a Claude Code plugin.** New `.claude-plugin/plugin.json`
+  and `.claude-plugin/marketplace.json` make this repository both a plugin and a one-entry
+  marketplace, so a project gets all sixteen skills with
+  `/plugin marketplace add alif199339/rigor` + `/plugin install rigor@rigor` instead of a
+  `cp -r`, and receives updates from the marketplace. **No skill changed behaviour.** What
+  did change is path resolution: a plugin's files live outside the project, so the
+  `.claude/skills/...` script paths hardcoded in ten `SKILL.md` files could not resolve
+  there. Every `SKILL.md` now carries a `<!-- rigor:paths -->` note defining `$RIGOR` —
+  `${CLAUDE_PLUGIN_ROOT}`, which Claude Code substitutes with an absolute path when it
+  loads the file, or `.claude` when those braces are still literal — and all 34 script
+  paths are written `$RIGOR/skills/<skill>/<script>.py`. Both branches were verified by
+  loading the skills each way and reading back the path the agent resolved. Three
+  pre-existing inconsistencies were standardised in passing (`skills/...` with no prefix in
+  data-audit, rebuttal and submit-gate, which only resolved when the cwd happened to be the
+  install root, plus Windows-backslash variants). **One documented exception:**
+  `submit-gate`'s `gate.yaml` example keeps literal paths, because that file is read by
+  `submit_gate.py` and its `cmd` arrays are executed directly, so no variable is expanded
+  there — the skill now says so explicitly. New offline `tests/test_plugin_manifest.py`
+  (10 tests) pins the manifests, keeps `plugin.json`'s version and this file's VERSION from
+  drifting, and fails if a hardcoded install path or either documented footgun (an
+  entry-level `skills` key, a top-level `bin/`) reappears. The copy-paste install is
+  unchanged and still supported.
 
 - **v1.9** — **Two new reviewer-side skills (16 total): ref-audit + result-audit**, the
   first skills whose input is a submitted **PDF** rather than the author's sources —

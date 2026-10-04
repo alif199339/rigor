@@ -5,15 +5,23 @@ description: Reconcile every numeric claim in a LaTeX or Markdown manuscript's p
 
 # /claims-audit — do the manuscript's numbers still match the data?
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 Numbers drift. A table gets regenerated after a re-sweep, but a metric quoted in the
 abstract or a Discussion sentence keeps its old value. A manual audit of the reference
 install found **nine** such mismatches in one manuscript. This mechanizes that check so
 it reruns after every sweep.
 
-The script is `.claude/skills/claims-audit/claims_audit.py` (stdlib-only):
+The script is `$RIGOR/skills/claims-audit/claims_audit.py` (stdlib-only):
 
 ```powershell
-python .claude\skills\claims-audit\claims_audit.py `
+python $RIGOR\skills\claims-audit\claims_audit.py `
     --tex path\to\main.tex --tables path\to\tables `
     --results "<sweep_dir>\runs\*\output\results.json"
 #   --figures <dir>   default: <tex-dir>/figures

@@ -5,6 +5,14 @@ description: Reviewer-response tracking with mechanically verified change-claims
 
 # /rebuttal — never say "we revised it" when the diff says you didn't
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 The classic rebuttal failure: the response letter says *"we have revised Section 3
 accordingly"* and the revision diff shows nothing of the kind. Reviewers notice, and
 it reads as bad faith even when it was an honest oversight across a three-month
@@ -18,7 +26,7 @@ The script is `rebuttal.py` (stdlib). One `--dir` per review round
 
 ```powershell
 $env:PYTHONUTF8="1"
-$R = "skills/rebuttal/rebuttal.py"
+$R = "$RIGOR/skills/rebuttal/rebuttal.py"
 $D = "rebuttal/round1"
 
 python $R --dir $D init

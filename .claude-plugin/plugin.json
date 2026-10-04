@@ -1,0 +1,21 @@
+{
+  "name": "rigor",
+  "displayName": "RIGOR",
+  "version": "1.10",
+  "description": "Research Integrity Guardrails for Open Research: sixteen skills for grounded literature discovery, bibliography and content-level citation auditing, manuscript-vs-data claim reconciliation, paired-by-seed statistics, dataset fingerprinting, unattended remote GPU runs, an append-only lab notebook, diff-verified rebuttals, a pre-submission gate, and reviewer-side PDF screening.",
+  "author": {
+    "name": "Alif Mahmud",
+    "url": "https://orcid.org/0009-0001-5756-2202"
+  },
+  "homepage": "https://github.com/alif199339/rigor",
+  "repository": "https://github.com/alif199339/rigor",
+  "license": "MIT",
+  "keywords": [
+    "research-integrity",
+    "literature-review",
+    "citation-verification",
+    "reproducibility",
+    "statistics",
+    "peer-review"
+  ]
+}

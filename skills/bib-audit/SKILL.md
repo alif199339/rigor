@@ -5,13 +5,21 @@ description: Verify every entry in a BibTeX file against Semantic Scholar + Cros
 
 # /bib-audit — verify a bibliography against real records, propose fixes, never auto-edit
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 `/lit-review` guarantees *new* citations are real. This closes the other hole: a `.bib`
 that predates the skill (or was hand-edited) can still carry a wrong year, a drifted
 title, a missing DOI, or an entry that resolves to nothing. `/bib-audit` checks every
 entry against the **live Semantic Scholar + Crossref APIs** and writes a report you
 review before touching the file.
 
-The script is `.claude/skills/bib-audit/bib_audit.py` (stdlib-only, any Python 3.10+;
+The script is `$RIGOR/skills/bib-audit/bib_audit.py` (stdlib-only, any Python 3.10+;
 use `py -3.11` or the project smoke venv).
 
 ## The non-negotiable rule
@@ -26,7 +34,7 @@ a real, resolved source behind it.
 ```powershell
 $env:PYTHONUTF8="1"          # Windows: abstracts/venues are unicode-heavy
 $B = "path/to/references.bib"
-python .claude/skills/bib-audit/bib_audit.py --bib $B --mailto <your-email>
+python $RIGOR/skills/bib-audit/bib_audit.py --bib $B --mailto <your-email>
 #   --out   <path>          default: <bib-dir>/bib_audit_report.md
 #   --only  key1,key2       audit just these entry keys (fast re-check after a fix)
 #   --mailto you@x.com      Crossref polite-pool contact (recommended; else generic UA)

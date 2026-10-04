@@ -5,6 +5,14 @@ description: Append-only, cross-session lab notebook for long investigations tha
 
 # /lab-notebook — remember an investigation across sessions, without trusting memory
 
+<!-- rigor:paths -->
+> **Paths and names in this file.** Script paths below are written
+> `$RIGOR/skills/<skill>/<script>.py`. Set `$RIGOR` to `${CLAUDE_PLUGIN_ROOT}`: Claude Code
+> replaces that with an absolute path when it loads this file, so if the braces are gone,
+> this is a plugin install and that path is `$RIGOR`. If you can still read the literal
+> `${CLAUDE_PLUGIN_ROOT}`, this is a copy-paste install — set `$RIGOR` to `.claude`.
+> Skill names are written `/name`; a plugin install namespaces them as `/rigor:name`.
+
 Long investigations outlive a single session and fan out into parallel tracks
 (parsing track, data-quality track, modelling track, writing track…). Chat history dies at
 compaction; human memory of "which track was blocked and why" dies faster. This skill
@@ -13,7 +21,7 @@ reads the digest at start, appends grounded entries as work lands, and recompile
 report at the end. The notebook — not the conversation — is the source of truth for
 "where were we".
 
-The script is `.claude/skills/lab-notebook/notebook.py` (stdlib-only, any Python 3.10+).
+The script is `$RIGOR/skills/lab-notebook/notebook.py` (stdlib-only, any Python 3.10+).
 
 ## The non-negotiable rule
 
@@ -43,15 +51,15 @@ $env:PYTHONUTF8="1"                              # Windows: entry text is unicod
 $NB = "projects/my_paper/notebook"           # from project_profile.yaml notebook_dir
 
 # once, when an investigation starts
-python .claude/skills/lab-notebook/notebook.py --dir $NB init --name "my-investigation" --plan docs/PLAN.md
-python .claude/skills/lab-notebook/notebook.py --dir $NB track-add 1A "Parse the X blocks"
-python .claude/skills/lab-notebook/notebook.py --dir $NB track-add 2A "Diagnostics" --depends 1A
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB init --name "my-investigation" --plan docs/PLAN.md
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB track-add 1A "Parse the X blocks"
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB track-add 2A "Diagnostics" --depends 1A
 
 # every session
-python .claude/skills/lab-notebook/notebook.py --dir $NB status          # session start: read this FIRST
-python .claude/skills/lab-notebook/notebook.py --dir $NB log 1A --type finding --text "..." --evidence outputs/t1.csv
-python .claude/skills/lab-notebook/notebook.py --dir $NB track-set 1A --status done --note "gate passed"
-python .claude/skills/lab-notebook/notebook.py --dir $NB compile         # session end -> NOTEBOOK.md
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB status          # session start: read this FIRST
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB log 1A --type finding --text "..." --evidence outputs/t1.csv
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB track-set 1A --status done --note "gate passed"
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB compile         # session end -> NOTEBOOK.md
 ```
 
 ## Entry types (pick the honest one)
@@ -133,7 +141,7 @@ guardrail — it fails on citations of nonexistent entries, warns when a superse
 entry is quoted instead of its correction, and lists findings the story never used:
 
 ```powershell
-python .claude/skills/lab-notebook/notebook.py --dir $NB check-narrative $NB/NARRATIVE.md
+python $RIGOR/skills/lab-notebook/notebook.py --dir $NB check-narrative $NB/NARRATIVE.md
 ```
 
 Fix and re-check until clean before sharing the narrative.
